@@ -75,6 +75,20 @@ if(/\/$/.test(location.pathname))location.replace('index.html'+location.search+l
      el auxiliar vea cuántos pasos tiene el trabajo desde el principio */
   .paso:disabled{opacity:.38;cursor:default}
 
+  /* ===== avance compartido ===== */
+  .sync{display:flex;align-items:center;gap:7px;padding:5px 14px;background:#EEF7F1;color:#0E6B34;font-size:11.5px;font-weight:700;
+    border-bottom:1px solid #D5ECDD;flex-shrink:0;cursor:pointer;min-height:26px;white-space:nowrap;overflow:hidden}
+  .sync .tx{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .sync .pt{width:8px;height:8px;border-radius:50%;background:var(--ok);flex-shrink:0}
+  .sync.env{background:#EEF2FB;color:#23408E;border-bottom-color:#D8E0F3}
+  .sync.env .pt{background:#3B63D6;animation:lat 1s ease-in-out infinite}
+  .sync.mal{background:#FFF6E0;color:#6B4A00;border-bottom-color:#F2D48A}
+  .sync.mal .pt{background:var(--amar)}
+  .sync.gris{background:#F0F1F3;color:var(--gris);border-bottom-color:var(--linea)}
+  .sync.gris .pt{background:#B8BDC6}
+  @keyframes lat{50%{opacity:.25}}
+  .bul-row .st .quien{color:var(--gris);font-weight:600}
+
   /* ===== barra inferior ===== */
   .navbar{display:flex;background:var(--panel);border-top:1px solid var(--linea);flex-shrink:0;
     padding-bottom:env(safe-area-inset-bottom)}
@@ -380,6 +394,8 @@ if(/\/$/.test(location.pathname))location.replace('index.html'+location.search+l
     <button class="paso" id="paso3" onclick="irPaso(3)"><b><i class="n">3 · </i>Carga</b><span class="cnt" id="cnt3">0</span></button>
     <button class="paso" id="paso4" onclick="irPaso(4)"><b><i class="n">4 · </i>Bultos</b><span class="cnt" id="cnt4">0</span></button>
   </div>
+  <!-- avance compartido entre celulares: siempre a la vista, en una línea -->
+  <div class="sync" id="syncBar" style="display:none" onclick="sincronizarYa()"><span class="pt"></span><span class="tx" id="syncTx"></span></div>
 
   <!-- cargando -->
   <div class="pantalla activa" id="p-cargando">
@@ -552,6 +568,7 @@ const ETIQ={
 };
 
 function pintarCascara(){
+  pintarSync();
   const enFlujo = PASO>=1 && PROGRAMAS.length>0;
   document.getElementById('pasos').style.display = enFlujo?'':'none';
   document.getElementById('navbar').classList.toggle('oculta', !enFlujo);
@@ -737,6 +754,150 @@ function repintar(){
   if(PASO===4&&facActual())renderFactura();
   pintarCascara();
 }
+/* ===== AVANCE COMPARTIDO ENTRE CELULARES =====
+   Cada acción del patio (bulto escaneado, factura marcada a mano, salida
+   autorizada) se guarda primero en el celular y se envía a la hoja "Avance"
+   del piloto. Cada celular lee de esa hoja lo que hicieron los demás y lo
+   suma a lo suyo. Así dos auxiliares pueden cargar el mismo camión, cada uno
+   con su celular, y el supervisor ve el avance desde el suyo.
+
+   Reglas para que nunca se pierda ni se invente nada:
+   · Sin señal se sigue trabajando: lo hecho queda en una "bandeja de salida"
+     del celular y se envía solo cuando vuelve la señal (aunque se cierre la
+     app o se cambie de programación).
+   · Un bulto escaneado en cualquier celular queda escaneado en todos. Se
+     suman, nunca se restan: si un evento llega dos veces no pasa nada.
+   · Una factura marcada a mano: vale la última acción que llegó a la hoja.
+     Mientras la acción de este celular no se haya enviado, manda la de aquí.
+   · Una salida autorizada en un celular queda autorizada en todos. */
+const DISP=(()=>{try{let d=localStorage.getItem('patio_disp');if(!d){d=Math.random().toString(36).slice(2,8).toUpperCase();localStorage.setItem('patio_disp',d);}return d;}
+  catch(e){return 'M'+Math.random().toString(36).slice(2,7).toUpperCase();}})();
+function miNombre(){try{return (localStorage.getItem('patio_nombre')||'').trim();}catch(e){return '';}}
+function guardarNombre(n){try{if(n&&n.trim())localStorage.setItem('patio_nombre',n.trim());}catch(e){}}
+const OUT_MEM={};                    // respaldo si el navegador no deja guardar
+const OUT_PREF='piloto_outbox_';
+function outLeer(prog){try{const v=localStorage.getItem(OUT_PREF+prog);return v?JSON.parse(v):(OUT_MEM[prog]||[]);}catch(e){return OUT_MEM[prog]||[];}}
+function outEscribir(prog,a){OUT_MEM[prog]=a;try{if(a.length)localStorage.setItem(OUT_PREF+prog,JSON.stringify(a));else localStorage.removeItem(OUT_PREF+prog);}catch(e){}}
+function outProgs(){const ks=new Set(Object.keys(OUT_MEM).filter(k=>OUT_MEM[k].length));
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf(OUT_PREF)===0)ks.add(k.slice(OUT_PREF.length));}}catch(e){}
+  return [...ks];}
+function pendientes(){return PROG_ACT?outLeer(PROG_ACT.fecha).length:0;}
+let SYNC={prog:null,desde:1,ok:null,t:0,pidiendo:false,enviando:false,fallos:0,enviarT:null};
+let SEQ=0;
+function emitir(tipo,placa,factura,codigo,valor){
+  if(!BULTOS_URL||!PROG_ACT)return;
+  const ev={id:DISP+'-'+Date.now().toString(36)+'-'+(++SEQ),tipo,placa,factura:factura||'',codigo:codigo||'',valor:valor||'',
+    quien:miNombre(),disp:DISP,hora:new Date().toISOString()};
+  const prog=PROG_ACT.fecha;const a=outLeer(prog);a.push(ev);outEscribir(prog,a);
+  programarEnvio(250);pintarSync();
+}
+function programarEnvio(ms){clearTimeout(SYNC.enviarT);SYNC.enviarT=setTimeout(enviarTodo,ms);}
+async function postPiloto(body,ms){
+  const corte=new AbortController();const reloj=setTimeout(()=>corte.abort(),ms||25000);
+  try{const r=await fetch(BULTOS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(Object.assign({clave:BULTOS_CLAVE},body)),signal:corte.signal});
+    const d=await r.json();if(!d||!d.ok)throw new Error((d&&d.error)||'respuesta inválida');return d;}
+  finally{clearTimeout(reloj);}
+}
+/* Envía la bandeja de salida de TODAS las programaciones con algo pendiente. */
+async function enviarTodo(){
+  if(!BULTOS_URL||SYNC.enviando)return;
+  const progs=outProgs();if(!progs.length){pintarSync();return;}
+  SYNC.enviando=true;pintarSync();
+  let fallo=false,envieActual=false;
+  try{
+    for(const prog of progs){
+      const lote=outLeer(prog).slice(0,200);if(!lote.length)continue;
+      try{
+        await postPiloto({accion:'avance',prog,eventos:lote});
+        const ids=new Set(lote.map(e=>e.id));
+        outEscribir(prog,outLeer(prog).filter(e=>!ids.has(e.id)));    // lo agregado mientras se enviaba se conserva
+        if(PROG_ACT&&prog===PROG_ACT.fecha)envieActual=true;
+      }catch(e){fallo=true;break;}
+    }
+  }finally{SYNC.enviando=false;}
+  if(fallo){SYNC.fallos++;programarEnvio(Math.min(30000,4000*SYNC.fallos));}
+  else{SYNC.fallos=0;if(outProgs().length)programarEnvio(200);}
+  if(envieActual)leerAvance(true);
+  pintarSync();
+}
+/* Lee lo que hicieron los otros celulares en esta programación. */
+async function leerAvance(forzar){
+  if(!BULTOS_URL||!PROG_ACT||SYNC.pidiendo)return;
+  if(!forzar&&Date.now()-SYNC.t<4000)return;
+  const prog=PROG_ACT;
+  if(SYNC.prog!==prog.fecha){SYNC.prog=prog.fecha;SYNC.desde=1;SYNC.ok=null;SYNC.t=0;}
+  SYNC.pidiendo=true;
+  try{
+    const d=await postPiloto({accion:'progreso',prog:prog.fecha,desde:SYNC.desde},20000);
+    if(prog!==PROG_ACT)return;
+    aplicarEventos(d.eventos||[]);
+    SYNC.desde=Number(d.hasta)||SYNC.desde;SYNC.ok=true;SYNC.t=Date.now();
+  }catch(e){if(prog===PROG_ACT)SYNC.ok=false;}
+  finally{SYNC.pidiendo=false;pintarSync();}
+}
+function itemDe(placa,fac){
+  const f=normFac(fac);const c=CAMIONES[placa];
+  let it=c?c.items.find(i=>i.facN===f):null;
+  if(!it)for(const cc of Object.values(CAMIONES)){it=cc.items.find(i=>i.facN===f);if(it)break;}
+  return it;
+}
+function aplicarEventos(evs){
+  if(!evs.length)return;
+  const pend=new Set(outLeer(PROG_ACT.fecha).filter(e=>e.tipo==='marca').map(e=>normFac(e.factura)));
+  let cambio=false,cerradoAqui=false;
+  evs.forEach(e=>{
+    if(e.tipo==='cierre'){
+      const c=CAMIONES[e.placa];
+      if(c&&!c.cerrado){c.cerrado=true;c.responsable=e.valor||c.responsable;
+        c.hora=new Date(e.hora||e.recibido).toLocaleString('es-PE');cambio=true;if(c.placa===PLACA_ACT&&e.disp!==DISP)cerradoAqui=true;}
+      return;
+    }
+    const it=itemDe(e.placa,e.factura);if(!it)return;
+    if(e.tipo==='bulto'){
+      const cod=canonico(normFac(e.codigo));if(!cod)return;
+      if(!it.horas)it.horas={};if(!it.por)it.por={};
+      if(!it.leidos.has(cod)){it.leidos.add(cod);cambio=true;}
+      if(!it.horas[cod])it.horas[cod]=e.hora||e.recibido;
+      if(!it.por[cod])it.por[cod]={q:e.quien||'',d:e.disp||''};
+      if(it.codigos){const m=it.codigos.every(x=>it.leidos.has(x));if(m!==it.marcado){it.marcado=m;cambio=true;}}
+    }else if(e.tipo==='marca'&&!it.codigos&&!pend.has(it.facN)){
+      const v=e.valor==='1';if(it.marcado!==v){it.marcado=v;cambio=true;}
+    }
+  });
+  if(!cambio)return;
+  guardar();repintar();
+  if(cerradoAqui){if(scanning)cerrarScanner();toast('Otro celular autorizó la salida de este camión');}
+}
+/* Quién escaneó un bulto, en pocas palabras: "este celular", "Luis", "otro celular". */
+function porTxt(it,cod){const p=it.por&&it.por[cod];if(!p)return '';if(p.d===DISP)return p.q||'este celular';return p.q||'otro celular';}
+function pintarSync(){
+  const bar=document.getElementById('syncBar');if(!bar)return;
+  const ver=!!(BULTOS_URL&&PROG_ACT&&PASO>=2);
+  bar.style.display=ver?'':'none';if(!ver)return;
+  const n=pendientes();let cls='',tx='';
+  if(n&&SYNC.fallos){cls='mal';tx=`Sin señal · ${n} por enviar · se envían solas`;}
+  else if(n||SYNC.enviando){cls='env';tx=n?`Enviando ${n}…`:'Enviando…';}
+  else if(SYNC.ok===false){cls='mal';tx='No se pudo leer el avance de los otros celulares · toca para reintentar';}
+  else if(SYNC.ok===null){cls='gris';tx='Conectando el avance compartido…';}
+  else{const seg=Math.round((Date.now()-SYNC.t)/1000);tx='Avance compartido entre celulares · '+(seg<15?'al día':seg<60?'hace '+seg+' s':haceTxt(SYNC.t));}
+  bar.className='sync'+(cls?' '+cls:'');
+  document.getElementById('syncTx').textContent=tx;
+}
+function sincronizarYa(){enviarTodo();leerAvance(true);}
+/* Ritmo: cada 8 s dentro de un camión, cada 15 s en la lista de camiones,
+   nada en la pantalla de fechas ni con la app en segundo plano. */
+setInterval(()=>{
+  if(document.visibilityState!=='visible'||!PROG_ACT||PASO<2){pintarSync();return;}
+  const periodo=PASO>=3?8000:15000;
+  if(Date.now()-SYNC.t>=periodo)leerAvance(true);
+  if(outProgs().length&&!SYNC.enviando&&!SYNC.fallos)enviarTodo();
+  pintarSync();
+},4000);
+window.addEventListener('online',()=>{SYNC.fallos=0;sincronizarYa();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){enviarTodo();leerAvance(true);}});
+setTimeout(enviarTodo,1500);          // al abrir la app: lo que quedó pendiente de otra vez
+
 function haceTxt(t){const m=Math.round((Date.now()-t)/60000);return m<1?'hace un momento':m===1?'hace 1 min':'hace '+m+' min';}
 setInterval(()=>{if(document.visibilityState==='visible')refrescarBultos(false);},180000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refrescarBultos(false);});
@@ -900,8 +1061,10 @@ function elegirPrograma(idx){
   PROG_ACT=PROGRAMAS[idx];
   BULTOS={};BULTOS_OK=null;BULTOS_T=0;
   construirCamiones();
+  SYNC.prog=null;
   irLista();
   refrescarBultos(true);
+  leerAvance(true);
 }
 
 /* ===== construir camiones desde el programa ===== */
@@ -919,7 +1082,7 @@ function construirCamiones(){
     const info=porUnit[p.unitId];if(!info)return;
     const c=CAMIONES[info.placa];if(!c)return;
     c.items.push({factura:(p.FACTURA||'').toString().trim(),facN:normFac(p.FACTURA),cliente:(p.CLIENTES||'').toString().trim(),distrito:(p.DISTRITO||'').toString().trim(),zona:(p.ZONA||'').toString().trim(),obs:(p.OBSERVACION||'').toString().trim(),marcado:false,
-      codigos:(BULTOS[normFac(p.FACTURA)]||{}).codigos||null,leidos:new Set(),horas:{}});
+      codigos:(BULTOS[normFac(p.FACTURA)]||{}).codigos||null,leidos:new Set(),horas:{},por:{}});
   });
   // quitar camiones sin facturas
   Object.keys(CAMIONES).forEach(k=>{if(!CAMIONES[k].items.length)delete CAMIONES[k];});
@@ -936,8 +1099,8 @@ function guardar(){
   Object.values(CAMIONES).forEach(c=>{
     // lo escaneado se guarda SIEMPRE, tenga o no registro en este momento: si la app se
     // reabre antes de que llegue el registro y se guarda algo, no debe borrarse el avance
-    const leidos={},horas={};c.items.forEach(i=>{if(i.leidos.size){leidos[i.factura]=[...i.leidos];horas[i.factura]=i.horas||{};}});
-    data[c.placa]={cerrado:c.cerrado,responsable:c.responsable,hora:c.hora,marcadas:c.items.filter(i=>i.marcado).map(i=>i.factura),leidos,horas};
+    const leidos={},horas={},por={};c.items.forEach(i=>{if(i.leidos.size){leidos[i.factura]=[...i.leidos];horas[i.factura]=i.horas||{};por[i.factura]=i.por||{};}});
+    data[c.placa]={cerrado:c.cerrado,responsable:c.responsable,hora:c.hora,marcadas:c.items.filter(i=>i.marcado).map(i=>i.factura),leidos,horas,por};
   });
   try{localStorage.setItem(keyEstado(),JSON.stringify(data));}catch(e){}
 }
@@ -950,6 +1113,7 @@ function cargarEstado(){
           registro, el avance se perdía al reabrir la app antes de que llegue. */
       ((s.leidos||{})[i.factura]||[]).forEach(cod=>i.leidos.add(canonico(cod)));
       i.horas=Object.assign({},(s.horas||{})[i.factura]||{});
+      i.por=Object.assign({},(s.por||{})[i.factura]||{});
       if(i.codigos){
         /*  Con bultos, "cargada" NO se lee de lo guardado: se recalcula contra
             el registro actual. Si picking corrigió la factura de 5 a 6 bultos
@@ -1052,12 +1216,13 @@ function abrirCamion(p){
   document.getElementById('topPlaca').style.display='';document.getElementById('topPlaca').textContent=p;
   document.getElementById('topTitulo').textContent=c.ruta||'Verificación';
   document.getElementById('topSub').textContent='Ruta'+(c.personal?' · '+c.personal:'');
-  document.getElementById('respInput').value=c.responsable||'';
+  document.getElementById('respInput').value=c.responsable||(c.cerrado?'':miNombre());
   PASO=3;
   mostrar('p-verif');renderVerif();pintarCascara();
   // precargar el motor OCR en segundo plano para que al tocar "Escanear" ya esté listo
   if(!ocrListo){initOcr().catch(()=>{});}
   refrescarBultos(true);   // al entrar al camión siempre: es el momento en que importa estar al día
+  leerAvance(true);
 }
 function renderVerif(){
   const c=CAMIONES[PLACA_ACT];const e=estado(c);
@@ -1133,7 +1298,7 @@ function renderFactura(){
   lista.innerHTML=info+(filas.length?filas.map(x=>{
       const h=it.horas&&it.horas[x.cod];
       return `<div class="bul-row ${x.ok?'ok':''}"><div class="nro">${esc(x.cod.slice(x.cod.lastIndexOf('/')+1))}</div>
-        <div class="inf"><div class="cod">${esc(x.cod)}</div><div class="st">${x.ok?'✓ Escaneado'+(h?' · '+horaCorta(h):''):'Pendiente'}</div></div></div>`;}).join('')
+        <div class="inf"><div class="cod">${esc(x.cod)}</div><div class="st">${x.ok?'✓ Escaneado'+(h?' · '+horaCorta(h):'')+(porTxt(it,x.cod)?' <span class="quien">· '+esc(porTxt(it,x.cod))+'</span>':''):'Pendiente'}</div></div></div>`;}).join('')
     :`<p class="vacio" style="padding:22px 16px;text-align:center">${f==='falta'?'No falta ningún bulto de esta factura.':'Todavía no se escanea ningún bulto de esta factura.'}</p>`)+
     (it.marcado||c.cerrado?'':`<button class="btn-manual" onclick="entradaManual()">Rótulo dañado: ingresar código a mano</button>`);
 }
@@ -1150,14 +1315,18 @@ function toggleLista(idx){const c=CAMIONES[PLACA_ACT];if(c.cerrado){toast('Cami�
       cada caja se escanee. Si se pudiera tocar la tarjeta, se volvería al
       "cuento que están todos" que causa los olvidos. Un rótulo dañado se
       resuelve con «Ingresar a mano» escribiendo el código del bulto. */
-  if(i.codigos){buzz(40);toast('Esta factura se controla por bulto: escanea cada caja',true);return;}i.marcado=!i.marcado;if(i.marcado){buzz(60);beep(900,120);}else buzz(30);guardar();renderVerif();pintarCascara();}
-document.getElementById('respInput').addEventListener('change',e=>{if(PLACA_ACT){CAMIONES[PLACA_ACT].responsable=e.target.value;guardar();}});
+  if(i.codigos){buzz(40);toast('Esta factura se controla por bulto: escanea cada caja',true);return;}i.marcado=!i.marcado;if(i.marcado){buzz(60);beep(900,120);}else buzz(30);guardar();emitir('marca',c.placa,i.factura,'',i.marcado?'1':'0');repintar();}
+document.getElementById('respInput').addEventListener('input',e=>guardarNombre(e.target.value));
+document.getElementById('respInput').addEventListener('change',e=>{guardarNombre(e.target.value);if(PLACA_ACT){CAMIONES[PLACA_ACT].responsable=e.target.value;guardar();}});
 function autorizarSalida(){
   const c=CAMIONES[PLACA_ACT];const e=estado(c);
   if(c.cerrado){toast('Ya fue autorizada');return;}
   if(!e.completo){buzz([80,50,80,50,80]);beep(300,400);toast('No se puede: '+faltaFrase(e).toLowerCase(),true);return;}
-  if(!c.responsable||!c.responsable.trim()){toast('Escribe tu nombre antes de autorizar',true);document.getElementById('respInput').focus();return;}
-  c.cerrado=true;c.hora=new Date().toLocaleString('es-PE');guardar();beep(1200,200);buzz(150);toast('✓ Salida autorizada');renderVerif();setTimeout(irLista,1100);
+  if(!c.responsable||!c.responsable.trim())c.responsable=document.getElementById('respInput').value.trim();
+  if(!c.responsable){toast('Escribe tu nombre antes de autorizar',true);document.getElementById('respInput').focus();return;}
+  // el nombre del campo puede no haber disparado "change" todavía
+  c.responsable=document.getElementById('respInput').value.trim()||c.responsable;guardarNombre(c.responsable);
+  c.cerrado=true;c.hora=new Date().toLocaleString('es-PE');guardar();emitir('cierre',c.placa,'','',c.responsable);beep(1200,200);buzz(150);toast('✓ Salida autorizada');renderVerif();setTimeout(irLista,1100);
 }
 
 /* ===== escáner ===== */
@@ -1377,7 +1546,7 @@ function procesar(facLeida){
   const idx=c.items.indexOf(item);
   document.getElementById('resAcciones').innerHTML=`<button class="btn-canc" onclick="reanudar()">Cancelar</button><button class="btn-conf" onclick="confirmar(${idx})">✓ Confirmar carga</button>`;
 }
-function confirmar(idx){const c=CAMIONES[PLACA_ACT];const it=c.items[idx];if(it){it.marcado=true;guardar();beep(1100,160);buzz(120);}const e=estado(c);if(e.completo){toast("✓ Camión completo");cerrarScanner();repintar();return;}reanudar();repintar();}
+function confirmar(idx){const c=CAMIONES[PLACA_ACT];const it=c.items[idx];if(it){it.marcado=true;guardar();emitir('marca',c.placa,it.factura,'','1');beep(1100,160);buzz(120);}const e=estado(c);if(e.completo){toast("✓ Camión completo");cerrarScanner();repintar();return;}reanudar();repintar();}
 function reanudar(){clearTimeout(reanudarT);document.getElementById('scanResult').classList.remove('show');resetEstab();setTimeout(()=>{pausado=false;if(scanning)requestAnimationFrame(bucle);},250);}
 function entradaManual(){pausado=true;const v=prompt('Ingresa la factura o el código del bulto (ej. 100106260 o 100106260/003):');if(!v){pausado=false;return;}const f=String(v).trim();if(f.length<4){toast('Muy corto — revísalo',true);pausado=false;return;}procesarCodigo(f);}
 
@@ -1433,13 +1602,17 @@ function procesarBulto(item,raw){
   const c=CAMIONES[PLACA_ACT];
   const nro=item.codigos.indexOf(raw)+1, n=item.codigos.length;
   if(item.leidos.has(raw)){
+    const quien=porTxt(item,raw), h=item.horas&&item.horas[raw];
     resultadoBulto('dup','!','Este bulto ya se escaneó',raw,
-      'Bulto <b>'+nro+' de '+n+'</b> · factura <b>'+esc(item.factura)+'</b>',
+      'Bulto <b>'+nro+' de '+n+'</b> · factura <b>'+esc(item.factura)+'</b>'+
+      (quien||h?'<br>Lo escaneó <b>'+esc(quien||'—')+'</b>'+(h?' a las '+esc(horaCorta(h)):''):''),
       'Busca las cajas que faltan de esta factura.',true);return;
   }
   item.leidos.add(raw);
-  if(!item.horas)item.horas={};
+  if(!item.horas)item.horas={};if(!item.por)item.por={};
   item.horas[raw]=new Date().toISOString();
+  item.por[raw]={q:miNombre(),d:DISP};
+  emitir('bulto',c.placa,item.factura,raw,'');
   item.marcado=item.codigos.every(cod=>item.leidos.has(cod));
   guardar();repintar();
   const falta=n-item.codigos.filter(cod=>item.leidos.has(cod)).length;

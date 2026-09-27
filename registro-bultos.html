@@ -514,10 +514,20 @@ async function guardar(imprimir){
   const cliente=pr&&pr.cliente?pr.cliente:(($('inCliente')||{}).value||'').trim();
   const body={accion:'guardar',registro:{factura:fac,bultos:n,cliente,registradoPor:quien}};
   if(EDIT_ORIG&&EDIT_ORIG!==fac)body.reemplaza=EDIT_ORIG;   // se corrigió el número: mover, no duplicar
+  // qué registro de ESTA factura tenía a la vista (si había): sin esto el servidor no deja reemplazar
+  const vista=buscarReg(fac);if(vista)body.version=vista.registradoEn||'';
 
   $('btnGuardar').disabled=true;$('btnGuardarImp').disabled=true;
   try{
     const d=await api(body);
+    if(d&&d.existe&&d.previo){
+      /*  Otro celular la registró mientras tanto. No se pisa: se muestra lo que
+          registró el otro y, si de verdad hay que cambiarlo, se vuelve a
+          tocar Guardar (ahora sabiendo qué se reemplaza). */
+      REGS=REGS.filter(r=>normFac(r.factura)!==fac);REGS.push(d.previo);
+      buzz([80,50,80]);toast('Otro celular ya registró esta factura. Revisa y, si hay que cambiarla, vuelve a guardar',true);
+      pintarForm();return;
+    }
     if(!d||!d.ok)throw new Error((d&&d.error)||'respuesta inválida');
     const g=d.registro;
     REGS=REGS.filter(r=>normFac(r.factura)!==fac&&normFac(r.factura)!==normFac(body.reemplaza||''));
@@ -530,7 +540,7 @@ async function guardar(imprimir){
     ir('registrar');$('inFactura').focus();
   }catch(e){
     toast('No se guardó: '+e.message,true);pintarForm();
-  }
+  }finally{pintarForm();}
 }
 
 /* ===== lista ===== */
@@ -650,6 +660,33 @@ function imprimirRotulos(r){
   });
   setTimeout(()=>window.print(),150);
 }
+
+/* ===== lo que registran los otros celulares =====
+   Picking puede tener más de un celular registrando. La lista se actualiza
+   sola cada 30 s (solo con la app a la vista) y al volver a la app, sin
+   pantalla de "cargando" y sin tocar lo que se está escribiendo. */
+let REGS_T=Date.now(),REGS_PIDIENDO=false;
+async function refrescarRegs(){
+  if(!BULTOS_URL||REGS_PIDIENDO||VISTA==='config')return;
+  REGS_PIDIENDO=true;
+  try{
+    const d=await api({accion:'listar',dias:30});
+    if(!d||!d.ok)return;
+    const antesDet=DETALLE?JSON.stringify(buscarReg(DETALLE)):null;
+    REGS=d.registros||[];REGS_T=Date.now();
+    $('cntHoy').textContent=REGS.filter(r=>diaLocal(r.registradoEn)===hoyLocal()).length;
+    contarSinProg();
+    if(VISTA==='lista')pintarLista();
+    else if(VISTA==='registrar')pintarForm();
+    else if(VISTA==='detalle'&&DETALLE){
+      const r=buscarReg(DETALLE);
+      if(!r){toast('Otro celular eliminó o corrigió este registro');ir('lista');}
+      else if(JSON.stringify(r)!==antesDet&&!document.querySelector('#detalle .confirma'))pintarDetalle(false);
+    }
+  }catch(e){}finally{REGS_PIDIENDO=false;}
+}
+setInterval(()=>{if(document.visibilityState==='visible'&&Date.now()-REGS_T>=30000)refrescarRegs();},5000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&Date.now()-REGS_T>=5000)refrescarRegs();});
 
 /* ===== instalar en el celular =====
    Aparece arriba del formulario mientras la app no esté instalada. Si Chrome

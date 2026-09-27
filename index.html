@@ -203,6 +203,15 @@ if(/\/$/.test(location.pathname))location.replace('index.html'+location.search+l
   .cam-card .info .r{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.2;word-break:break-word}
   .cam-card .info .z{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
   .cam-card .mini-barra{margin-top:0}
+  .cam-card .pct{text-align:right;flex-shrink:0}
+  .cam-card .bigl{font-size:10.5px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+  /* facturas y bultos son medidas distintas: cada una con su barra */
+  .barras{display:flex;flex-direction:column;gap:6px}
+  .barras .bl{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:10px;font-size:12px;color:var(--gris)}
+  .barras .bl b{color:var(--tinta);font-weight:800;font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
+  .barras .mini-barra{margin:0}
+  .mini-barra.bul span{background:#3B63D6}
+  .cam-card.completo .mini-barra.bul span{background:var(--ok)}
   .cc-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--gris)}
   .cc-meta b{color:var(--tinta);font-weight:800}
   .cc-meta .sinreg{color:#B57A00;font-weight:700}
@@ -919,15 +928,19 @@ function pintarSync(){
   document.getElementById('syncTx').textContent=tx;
 }
 function sincronizarYa(){enviarTodo();leerAvance(true);}
-/* Ritmo: cada 8 s dentro de un camión, cada 15 s en la lista de camiones,
-   nada en la pantalla de fechas ni con la app en segundo plano. */
+/*  Ritmo: cada 4 s dentro de un camión y cada 5 s en la lista de camiones;
+    nada en la pantalla de fechas ni con la app en segundo plano.
+    Antes era cada 8 y 15 s, revisado cada 4: lo escaneado en un celular
+    tardaba hasta 20 s en verse en otro. Ahora tarda unos 3 a 7 s: lo que
+    toma enviarlo y que el otro celular lo pida. Cada consulta solo trae
+    las filas nuevas de la hoja, así que consultar seguido es barato. */
 setInterval(()=>{
   if(document.visibilityState!=='visible'||!PROG_ACT||PASO<2){pintarSync();return;}
-  const periodo=PASO>=3?8000:15000;
-  if(Date.now()-SYNC.t>=periodo)leerAvance(true);
+  const periodo=PASO>=3?4000:5000;
+  if(!SYNC.pidiendo&&Date.now()-(SYNC.tPedido||0)>=periodo){SYNC.tPedido=Date.now();leerAvance(true);}
   if(outProgs().length&&!SYNC.enviando&&!SYNC.fallos)enviarTodo();
   pintarSync();
-},4000);
+},1000);
 window.addEventListener('online',()=>{SYNC.fallos=0;sincronizarYa();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){enviarTodo();leerAvance(true);}});
 setTimeout(enviarTodo,1500);          // al abrir la app: lo que quedó pendiente de otra vez
@@ -1234,13 +1247,16 @@ function renderLista(){
         Antes todo iba en una fila y con rutas largas ("SAN JUAN DE LURIGANCHO
         NORTE") el nombre se partía palabra por palabra y pisaba los números. */
     const meta=c.cerrado?`<span class="m">Salida autorizada${horaSalida(c.hora)?' · '+esc(horaSalida(c.hora)):''}${c.responsable?' · '+esc(c.responsable):''}</span>`
-      :`<span class="m"><b>${e.ok}/${e.t}</b> facturas</span>`+(e.bTot?`<span class="m"><b>${e.bOk}/${e.bTot}</b> bultos</span>`:'')+
+      :(e.bTot?'':`<span class="m"><b>${e.ok}/${e.t}</b> facturas</span>`)+
        (BULTOS_OK&&e.fSin?`<span class="m sinreg">${e.fSin} sin registro</span>`:'');
     return `<div class="cam-card ${cls}" data-placa="${esc(c.placa)}">
       <div class="cc-top"><span class="placa">${esc(c.placa)}</span>
         <div class="info"><div class="r">${c.ruta?esc(c.ruta):'Sin ruta'}</div><div class="z">${esc(c.personal||'Sin asignar')}</div></div>
-        <div class="big">${c.cerrado?'✓':e.pct+'%'}</div></div>
-      <div class="mini-barra"><span style="width:${c.cerrado?100:e.pct}%"></span></div>
+        <div class="pct"><div class="big">${c.cerrado?'✓':e.pct+'%'}</div>${c.cerrado?'':'<div class="bigl">facturas</div>'}</div></div>
+      ${!c.cerrado&&e.bTot?`<div class="barras">
+        <div class="bl"><span class="n">Facturas</span><div class="mini-barra"><span style="width:${e.pct}%"></span></div><b>${e.ok}/${e.t}</b></div>
+        <div class="bl"><span class="n">Bultos</span><div class="mini-barra bul"><span style="width:${Math.round(e.bOk/e.bTot*100)}%"></span></div><b>${e.bOk}/${e.bTot}</b></div></div>`
+        :`<div class="mini-barra"><span style="width:${c.cerrado?100:e.pct}%"></span></div>`}
       <div class="cc-meta">${meta}</div></div>`;}).join('');
 }
 

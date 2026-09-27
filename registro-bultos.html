@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#E1001A">
+<title>Registro de Bultos — Provefabrica</title>
+<link rel="apple-touch-icon" href="icono-192.png">
+<style>
+  :root{
+    --rojo:#E1001A; --rojo-osc:#B00014;
+    --tinta:#14161A; --gris:#6B7280; --linea:#E4E6EA;
+    --fondo:#0F1115; --panel:#FFFFFF; --suave:#F4F5F7;
+    --ok:#12A150; --amar:#F5A302; --amar-fondo:#FFF6E0;
+    --sombra:0 4px 20px rgba(0,0,0,.15);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;background:var(--fondo);color:var(--tinta);
+    -webkit-font-smoothing:antialiased;overscroll-behavior:none;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+  .app{max-width:520px;width:100%;margin:0 auto;flex:1;min-height:0;display:flex;flex-direction:column;background:var(--suave);position:relative;overflow:hidden}
+
+  /* cabecera */
+  .top{background:var(--rojo);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:var(--sombra);z-index:5}
+  .logo{width:34px;height:34px;background:#fff;color:var(--rojo);border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:18px;flex-shrink:0}
+  .top .t{flex:1;min-width:0}
+  .top h1{font-size:15px;font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top p{font-size:11.5px;opacity:.9}
+  .piloto{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.5);border-radius:20px;padding:3px 9px;font-size:10.5px;font-weight:800;letter-spacing:.6px}
+  .ibtn{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:17px;width:34px;height:34px;border-radius:8px;cursor:pointer;flex-shrink:0}
+
+  /* pantallas: flex:1 + min-height:0, nunca height:100% (ver app de patio) */
+  .pantalla{display:none;flex-direction:column;flex:1;min-height:0}
+  .pantalla.activa{display:flex}
+  .scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .pad{padding:16px}
+
+  /* formulario */
+  .card{background:var(--panel);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:12px}
+  .lbl{display:block;font-size:11.5px;font-weight:800;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+  .lbl .op{font-weight:600;text-transform:none;letter-spacing:0}
+  .inp{width:100%;border:1.5px solid var(--linea);background:#fff;border-radius:11px;padding:12px 13px;font-size:16px;font-family:inherit;color:var(--tinta);outline:none;-webkit-appearance:none}
+  .inp:focus{border-color:var(--rojo)}
+  .inp.grande{font-size:24px;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-family:ui-monospace,'SF Mono',Consolas,monospace;text-align:center;padding:14px}
+  .campo+.campo{margin-top:14px}
+
+  .quien{display:flex;align-items:center;gap:10px}
+  .quien .inp{flex:1}
+
+  /* contador de bultos */
+  .stepper{display:flex;align-items:stretch;gap:10px}
+  .stepper button{width:64px;border:0;border-radius:12px;background:var(--suave);font-size:30px;font-weight:700;color:var(--tinta);cursor:pointer;font-family:inherit}
+  .stepper button:active{background:#E3E5EA}
+  .stepper .num{flex:1;text-align:center;border:1.5px solid var(--linea);border-radius:12px;padding:6px 0}
+  .stepper .num input{width:100%;border:0;outline:none;background:none;text-align:center;font-size:38px;font-weight:800;font-family:inherit;color:var(--tinta);-moz-appearance:textfield}
+  .stepper .num input::-webkit-outer-spin-button,.stepper .num input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .stepper .num small{display:block;font-size:11px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.5px}
+
+  /* vista previa de códigos */
+  .prev-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .prev-h b{font-size:13px}
+  .prev-h span{font-size:12px;color:var(--gris)}
+  .codigos{display:flex;flex-wrap:wrap;gap:6px}
+  .cod{font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;font-weight:700;background:var(--suave);border:1px solid var(--linea);border-radius:7px;padding:5px 8px;color:var(--tinta)}
+  .cod b{color:var(--rojo)}
+  .vacio-prev{font-size:13px;color:var(--gris)}
+
+  .aviso{display:flex;gap:10px;align-items:flex-start;background:var(--amar-fondo);border:1.5px solid #F2D48A;color:#6B4A00;border-radius:12px;padding:12px 13px;font-size:13px;line-height:1.45;margin-bottom:12px}
+  .aviso .ic{font-size:17px;line-height:1.2}
+
+  /* botones de acción (fijos abajo en la pantalla de registro) */
+  .acciones{padding:12px 16px;background:var(--panel);border-top:1px solid var(--linea);display:flex;gap:10px;flex-shrink:0}
+  .btn{flex:1;border:0;border-radius:13px;padding:15px 8px;font-size:15px;white-space:nowrap;font-weight:800;font-family:inherit;cursor:pointer}
+  .btn.pri{background:var(--rojo);color:#fff;box-shadow:0 4px 14px rgba(225,0,26,.25)}
+  .btn.pri:active{background:var(--rojo-osc)}
+  .btn.sec{background:var(--panel);color:var(--rojo);border:1.5px solid var(--linea)}
+  .btn:disabled{opacity:.45;box-shadow:none;cursor:default}
+
+  /* lista de registradas */
+  .barra-lista{padding:12px 16px;background:var(--suave);border-bottom:1px solid var(--linea);flex-shrink:0;display:flex;gap:8px}
+  .barra-lista .inp{flex:1;padding:11px 13px;font-size:15px}
+  .seg{display:flex;background:#E7E9ED;border-radius:11px;padding:3px;flex-shrink:0}
+  .seg button{border:0;background:none;padding:8px 12px;border-radius:9px;font-family:inherit;font-size:13px;font-weight:800;color:var(--gris);cursor:pointer}
+  .seg button.on{background:#fff;color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .lista h2{font-size:12.5px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;margin:4px 2px 10px;font-weight:800}
+  .reg{background:var(--panel);border-radius:14px;padding:14px 14px 14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:14px;cursor:pointer;border-left:5px solid var(--rojo)}
+  .reg:active{transform:scale(.985)}
+  .reg .b{width:52px;height:52px;border-radius:12px;background:var(--rojo);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+  .reg .b .n{font-size:21px;font-weight:800;line-height:1}
+  .reg .b .u{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+  .reg .i{flex:1;min-width:0}
+  .reg .f{font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:16px;font-weight:800}
+  .reg .c{font-size:13px;color:var(--tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .reg .m{font-size:12px;color:var(--gris);margin-top:2px}
+  .reg .chev{color:var(--gris);font-size:20px}
+  .vacio{text-align:center;color:var(--gris);font-size:14px;line-height:1.5;padding:40px 20px}
+  .vacio .ic{font-size:42px;margin-bottom:10px}
+
+  /* detalle */
+  .det-cab{text-align:center;padding:6px 0 4px}
+  .det-cab .f{font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:26px;font-weight:800;letter-spacing:.5px}
+  .det-cab .c{font-size:14px;color:var(--gris);margin-top:4px}
+  .det-cab .m{font-size:12.5px;color:var(--gris);margin-top:8px}
+  .cod-lista .fila{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--linea)}
+  .cod-lista .fila:last-child{border-bottom:0}
+  .cod-lista .nro{width:34px;height:34px;border-radius:9px;background:var(--suave);display:grid;place-items:center;font-weight:800;font-size:13px}
+  .cod-lista .cc{font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:14px;font-weight:700}
+  .peligro{width:100%;margin-top:4px;background:none;border:1.5px solid #F3C2C7;color:var(--rojo);border-radius:12px;padding:13px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer}
+  .confirma{background:#FDECEE;border:1.5px solid #F3C2C7;border-radius:12px;padding:13px;margin-top:4px}
+  .confirma p{font-size:13.5px;color:#7A1020;margin-bottom:10px;line-height:1.45}
+  .confirma .fila-btn{display:flex;gap:8px}
+  .confirma button{flex:1;border-radius:10px;padding:11px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer}
+  .confirma .no{background:#fff;border:1.5px solid var(--linea);color:var(--tinta)}
+  .confirma .si{background:var(--rojo);border:0;color:#fff}
+
+  /* barra inferior */
+  .navbar{display:flex;background:var(--panel);border-top:1px solid var(--linea);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+  .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px 8px;border:0;background:none;font-family:inherit;font-size:11px;font-weight:700;color:var(--gris);cursor:pointer}
+  .nb .ic{font-size:18px;line-height:1}
+  .nb.on{color:var(--rojo)}
+  .nb .cnt{font-size:10px;background:var(--rojo);color:#fff;border-radius:20px;padding:0 6px;margin-left:3px}
+
+  /* estados */
+  .centro{margin:auto;text-align:center;padding:30px 24px}
+  .centro .ic{font-size:48px;margin-bottom:12px}
+  .centro h2{font-size:18px;margin-bottom:8px}
+  .centro p{font-size:13.5px;color:var(--gris);margin-bottom:18px;line-height:1.5}
+  .spin{width:40px;height:40px;border:4px solid #dfe3e8;border-top-color:var(--rojo);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 16px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .toast{position:fixed;left:50%;bottom:170px;width:max-content;transform:translateX(-50%) translateY(20px);background:var(--tinta);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .25s;z-index:50;max-width:88%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--rojo)}
+
+  /* ===== rótulos de prueba (solo al imprimir) ===== */
+  #impresion{display:none}
+  @media print{
+    @page{size:A4;margin:8mm}
+    body{background:#fff;display:block;height:auto;overflow:visible}
+    .app,.toast{display:none!important}
+    #impresion{display:grid;grid-template-columns:1fr 1fr;gap:6mm}
+    .rotulo{border:1.5px dashed #999;padding:5mm;break-inside:avoid;page-break-inside:avoid;font-family:Arial,Helvetica,sans-serif;color:#000}
+    .rotulo .emp{font-size:9pt;font-weight:700;letter-spacing:1px}
+    .rotulo .fac{font-size:14pt;font-weight:800;margin-top:1mm}
+    .rotulo .cli{font-size:10pt;margin-top:1mm;min-height:4mm}
+    .rotulo .bul{font-size:22pt;font-weight:900;margin:2mm 0 1mm}
+    .rotulo svg{width:100%;height:auto;display:block}
+    .rotulo .pie{font-size:7pt;color:#555;margin-top:1mm;text-align:center}
+  }
+  /* ===== v2: verificación contra la programación ===== */
+  .verif{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:11px 13px;font-size:13px;line-height:1.45;margin-top:12px}
+  .verif .ic{font-size:16px;line-height:1.25;flex-shrink:0}
+  .verif.ok{background:#E7F5EC;border:1.5px solid #B8E0C6;color:#0B5A2A}
+  .verif.no{background:var(--amar-fondo);border:1.5px solid #F2D48A;color:#6B4A00}
+  .verif.neutro{background:#F1F2F4;border:1.5px solid var(--linea);color:var(--gris)}
+  .verif b{font-weight:800}
+  .sugs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .sug{border:1.5px solid #E2BE5A;background:#fff;color:#6B4A00;border-radius:9px;padding:6px 10px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:13px;font-weight:800;cursor:pointer}
+  .cliente-fijo{border:1.5px dashed var(--linea);border-radius:11px;padding:12px 13px;font-size:15px;font-weight:600;background:#FAFAFB}
+  .cliente-fijo small{display:block;font-size:11px;font-weight:700;color:var(--gris);margin-top:2px}
+  .edit-banner{display:flex;align-items:center;gap:10px;background:var(--tinta);color:#fff;border-radius:12px;padding:11px 13px;font-size:13.5px;margin-bottom:12px}
+  .edit-banner b{font-family:ui-monospace,'SF Mono',Consolas,monospace}
+  .edit-banner button{margin-left:auto;background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:8px;padding:7px 11px;font-family:inherit;font-weight:800;font-size:12.5px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="logo">P</div>
+    <div class="t"><h1>Registro de Bultos</h1><p>Picking · Provefabrica Huachipa</p></div>
+    <span class="piloto">PILOTO</span>
+    <button class="ibtn" onclick="cargar()" title="Actualizar">↻</button>
+  </div>
+
+  <div class="pantalla" id="p-config">
+    <div class="centro"><div class="ic">⚙️</div><h2>Falta conectar el piloto</h2>
+      <p>Pega la dirección del Apps Script del piloto en el archivo <b>piloto-config.js</b> del repositorio. Se hace una sola vez.</p></div>
+  </div>
+
+  <div class="pantalla" id="p-cargando">
+    <div class="centro"><div class="spin"></div><h2>Cargando…</h2><p>Trayendo los bultos registrados y las programaciones.</p></div>
+  </div>
+
+  <div class="pantalla" id="p-error">
+    <div class="centro"><div class="ic">📡</div><h2>No se pudo conectar</h2><p id="errMsg"></p>
+      <button class="btn pri" style="width:100%" onclick="cargar()">Reintentar</button></div>
+  </div>
+
+  <!-- registrar -->
+  <div class="pantalla" id="p-registrar">
+    <div class="scroll"><div class="pad">
+      <div id="editBanner"></div>
+      <div class="card">
+        <label class="lbl" for="inQuien">Quién registra</label>
+        <input class="inp" id="inQuien" placeholder="Tu nombre" autocomplete="name">
+      </div>
+
+      <div class="card">
+        <div class="campo">
+          <label class="lbl" for="inFactura">Número de factura</label>
+          <input class="inp grande" id="inFactura" placeholder="100106260" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <div id="verifFactura"></div>
+        </div>
+        <div class="campo">
+          <label class="lbl" for="inCliente">Cliente</label>
+          <div id="clienteCampo"><input class="inp" id="inCliente" placeholder="Nombre del cliente" autocomplete="off"></div>
+        </div>
+      </div>
+
+      <div id="avisoExiste"></div>
+
+      <div class="card">
+        <label class="lbl">Bultos preparados</label>
+        <div class="stepper">
+          <button type="button" onclick="paso(-1)" aria-label="Uno menos">−</button>
+          <div class="num"><input id="inBultos" type="number" inputmode="numeric" min="1" max="999" value="1"><small>bultos</small></div>
+          <button type="button" onclick="paso(1)" aria-label="Uno más">+</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="prev-h"><b>Códigos que se generan</b><span id="prevCant"></span></div>
+        <div class="codigos" id="prevCodigos"></div>
+      </div>
+    </div></div>
+    <div class="acciones">
+      <button class="btn sec" id="btnGuardar" onclick="guardar(false)">Guardar</button>
+      <button class="btn pri" id="btnGuardarImp" onclick="guardar(true)">Guardar e imprimir</button>
+    </div>
+  </div>
+
+  <!-- registradas -->
+  <div class="pantalla" id="p-lista">
+    <div class="barra-lista">
+      <input class="inp" id="inBuscar" type="search" placeholder="Buscar factura o cliente" oninput="pintarLista()">
+      <div class="seg"><button id="segHoy" class="on" onclick="filtroDia('hoy')">Hoy</button><button id="segTodas" onclick="filtroDia('todas')">30 días</button></div>
+    </div>
+    <div class="scroll"><div class="pad lista" id="lista"></div></div>
+  </div>
+
+  <!-- detalle -->
+  <div class="pantalla" id="p-detalle">
+    <div class="scroll"><div class="pad" id="detalle"></div></div>
+  </div>
+
+  <nav class="navbar" id="navbar">
+    <button class="nb on" data-v="registrar" onclick="navegar('registrar')"><span class="ic">＋</span>Registrar</button>
+    <button class="nb" data-v="lista" onclick="navegar('lista')"><span class="ic">▦</span><span>Registradas<span class="cnt" id="cntHoy">0</span></span></button>
+  </nav>
+</div>
+
+<div id="impresion"></div>
+<div class="toast" id="toast"></div>
+
+<script src="piloto-config.js"></script>
+<script>/*! JsBarcode v3.11.6 | (c) Johan Lindell | MIT license */
+!function(t){var e={};function n(r){if(e[r])return e[r].exports;var o=e[r]={i:r,l:!1,exports:{}};return t[r].call(o.exports,o,o.exports,n),o.l=!0,o.exports}n.m=t,n.c=e,n.d=function(t,e,r){n.o(t,e)||Object.defineProperty(t,e,{enumerable:!0,get:r})},n.r=function(t){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(t,"__esModule",{value:!0})},n.t=function(t,e){if(1&e&&(t=n(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var r=Object.create(null);if(n.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var o in t)n.d(r,o,function(e){return t[e]}.bind(null,o));return r},n.n=function(t){var e=t&&t.__esModule?function(){return t.default}:function(){return t};return n.d(e,"a",e),e},n.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},n.p="",n(n.s=7)}([function(t,e,n){"use strict";var r;function o(t,e,n){return e in t?Object.defineProperty(t,e,{value:n,enumerable:!0,configurable:!0,writable:!0}):t[e]=n,t}Object.defineProperty(e,"__esModule",{value:!0});var i=e.SET_A=0,a=e.SET_B=1,u=e.SET_C=2,s=(e.SHIFT=98,e.START_A=103),f=e.START_B=104,c=e.START_C=105;e.MODULO=103,e.STOP=106,e.FNC1=207,e.SET_BY_CODE=(o(r={},s,i),o(r,f,a),o(r,c,u),r),e.SWAP={101:i,100:a,99:u},e.A_START_CHAR=String.fromCharCode(208),e.B_START_CHAR=String.fromCharCode(209),e.C_START_CHAR=String.fromCharCode(210),e.A_CHARS="[\0-_È-Ï]",e.B_CHARS="[ -È-Ï]",e.C_CHARS="(Ï*[0-9]{2}Ï*)",e.BARS=[11011001100,11001101100,11001100110,10010011e3,10010001100,10001001100,10011001e3,10011000100,10001100100,11001001e3,11001000100,11000100100,10110011100,10011011100,10011001110,10111001100,10011101100,10011100110,11001110010,11001011100,11001001110,11011100100,11001110100,11101101110,11101001100,11100101100,11100100110,11101100100,11100110100,11100110010,11011011e3,11011000110,11000110110,10100011e3,10001011e3,10001000110,10110001e3,10001101e3,10001100010,11010001e3,11000101e3,11000100010,10110111e3,10110001110,10001101110,10111011e3,10111000110,10001110110,11101110110,11010001110,11000101110,11011101e3,11011100010,11011101110,11101011e3,11101000110,11100010110,11101101e3,11101100010,11100011010,11101111010,11001000010,11110001010,1010011e4,10100001100,1001011e4,10010000110,10000101100,10000100110,1011001e4,10110000100,1001101e4,10011000010,10000110100,10000110010,11000010010,1100101e4,11110111010,11000010100,10001111010,10100111100,10010111100,10010011110,10111100100,10011110100,10011110010,11110100100,11110010100,11110010010,11011011110,11011110110,11110110110,10101111e3,10100011110,10001011110,10111101e3,10111100010,11110101e3,11110100010,10111011110,10111101110,11101011110,11110101110,11010000100,1101001e4,11010011100,1100011101011]},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(11),a=(r=i)&&r.__esModule?r:{default:r},u=n(0);var s=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e);var r=function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t.substring(1),n));return r.bytes=t.split("").map((function(t){return t.charCodeAt(0)})),r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return/^[\x00-\x7F\xC8-\xD3]+$/.test(this.data)}},{key:"encode",value:function(){var t=this.bytes,n=t.shift()-105,r=u.SET_BY_CODE[n];if(void 0===r)throw new RangeError("The encoding does not start with a start character.");!0===this.shouldEncodeAsEan128()&&t.unshift(u.FNC1);var o=e.next(t,1,r);return{text:this.text===this.data?this.text.replace(/[^\x20-\x7E]/g,""):this.text,data:e.getBar(n)+o.result+e.getBar((o.checksum+n)%u.MODULO)+e.getBar(u.STOP)}}},{key:"shouldEncodeAsEan128",value:function(){var t=this.options.ean128||!1;return"string"==typeof t&&(t="true"===t.toLowerCase()),t}}],[{key:"getBar",value:function(t){return u.BARS[t]?u.BARS[t].toString():""}},{key:"correctIndex",value:function(t,e){if(e===u.SET_A){var n=t.shift();return n<32?n+64:n-32}return e===u.SET_B?t.shift()-32:10*(t.shift()-48)+t.shift()-48}},{key:"next",value:function(t,n,r){if(!t.length)return{result:"",checksum:0};var o=void 0,i=void 0;if(t[0]>=200){i=t.shift()-105;var a=u.SWAP[i];void 0!==a?o=e.next(t,n+1,a):(r!==u.SET_A&&r!==u.SET_B||i!==u.SHIFT||(t[0]=r===u.SET_A?t[0]>95?t[0]-96:t[0]:t[0]<32?t[0]+96:t[0]),o=e.next(t,n+1,r))}else i=e.correctIndex(t,r),o=e.next(t,n+1,r);var s=i*n;return{result:e.getBar(i)+o.result,checksum:s+o.checksum}}}]),e}(a.default);e.default=s},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=Object.assign||function(t){for(var e=1;e<arguments.length;e++){var n=arguments[e];for(var r in n)Object.prototype.hasOwnProperty.call(n,r)&&(t[r]=n[r])}return t};e.default=function(t,e){return r({},t,e)}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(t){var e=["width","height","textMargin","fontSize","margin","marginTop","marginBottom","marginLeft","marginRight"];for(var n in e)e.hasOwnProperty(n)&&(n=e[n],"string"==typeof t[n]&&(t[n]=parseInt(t[n],10)));"string"==typeof t.displayValue&&(t.displayValue="false"!=t.displayValue);return t}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r={width:2,height:100,format:"auto",displayValue:!0,fontOptions:"",font:"monospace",text:void 0,textAlign:"center",textPosition:"bottom",textMargin:2,fontSize:20,background:"#ffffff",lineColor:"#000000",margin:10,marginTop:void 0,marginBottom:void 0,marginLeft:void 0,marginRight:void 0,valid:function(){}};e.default=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.getTotalWidthOfEncodings=e.calculateEncodingAttributes=e.getBarcodePadding=e.getEncodingHeight=e.getMaximumHeightOfEncodings=void 0;var r,o=n(2),i=(r=o)&&r.__esModule?r:{default:r};function a(t,e){return e.height+(e.displayValue&&t.text.length>0?e.fontSize+e.textMargin:0)+e.marginTop+e.marginBottom}function u(t,e,n){if(n.displayValue&&e<t){if("center"==n.textAlign)return Math.floor((t-e)/2);if("left"==n.textAlign)return 0;if("right"==n.textAlign)return Math.floor(t-e)}return 0}function s(t,e,n){var r;if(n)r=n;else{if("undefined"==typeof document)return 0;r=document.createElement("canvas").getContext("2d")}r.font=e.fontOptions+" "+e.fontSize+"px "+e.font;var o=r.measureText(t);return o?o.width:0}e.getMaximumHeightOfEncodings=function(t){for(var e=0,n=0;n<t.length;n++)t[n].height>e&&(e=t[n].height);return e},e.getEncodingHeight=a,e.getBarcodePadding=u,e.calculateEncodingAttributes=function(t,e,n){for(var r=0;r<t.length;r++){var o,f=t[r],c=(0,i.default)(e,f.options);o=c.displayValue?s(f.text,c,n):0;var l=f.data.length*c.width;f.width=Math.ceil(Math.max(o,l)),f.height=a(f,c),f.barcodePadding=u(o,l,c)}},e.getTotalWidthOfEncodings=function(t){for(var e=0,n=0;n<t.length;n++)e+=t[n].width;return e}},function(t,e,n){"use strict";function r(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function o(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}function i(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}Object.defineProperty(e,"__esModule",{value:!0});var a=function(t){function e(t,n){r(this,e);var i=o(this,(e.__proto__||Object.getPrototypeOf(e)).call(this));return i.name="InvalidInputException",i.symbology=t,i.input=n,i.message='"'+i.input+'" is not a valid input for '+i.symbology,i}return i(e,Error),e}(),u=function(t){function e(){r(this,e);var t=o(this,(e.__proto__||Object.getPrototypeOf(e)).call(this));return t.name="InvalidElementException",t.message="Not supported type to render on",t}return i(e,Error),e}(),s=function(t){function e(){r(this,e);var t=o(this,(e.__proto__||Object.getPrototypeOf(e)).call(this));return t.name="NoElementException",t.message="No element to render on.",t}return i(e,Error),e}();e.InvalidInputException=a,e.InvalidElementException=u,e.NoElementException=s},function(t,e,n){"use strict";var r=d(n(8)),o=d(n(2)),i=d(n(16)),a=d(n(17)),u=d(n(18)),s=d(n(3)),f=d(n(24)),c=n(6),l=d(n(4));function d(t){return t&&t.__esModule?t:{default:t}}var p=function(){},h=function(t,e,n){var r=new p;if(void 0===t)throw Error("No element to render on was provided.");return r._renderProperties=(0,u.default)(t),r._encodings=[],r._options=l.default,r._errorHandler=new f.default(r),void 0!==e&&((n=n||{}).format||(n.format=b()),r.options(n)[n.format](e,n).render()),r};for(var v in h.getModule=function(t){return r.default[t]},r.default)r.default.hasOwnProperty(v)&&g(r.default,v);function g(t,e){p.prototype[e]=p.prototype[e.toUpperCase()]=p.prototype[e.toLowerCase()]=function(n,r){var i=this;return i._errorHandler.wrapBarcodeCall((function(){r.text=void 0===r.text?void 0:""+r.text;var a=(0,o.default)(i._options,r);a=(0,s.default)(a);var u=t[e],f=y(n,u,a);return i._encodings.push(f),i}))}}function y(t,e,n){var r=new e(t=""+t,n);if(!r.valid())throw new c.InvalidInputException(r.constructor.name,t);var a=r.encode();a=(0,i.default)(a);for(var u=0;u<a.length;u++)a[u].options=(0,o.default)(n,a[u].options);return a}function b(){return r.default.CODE128?"CODE128":Object.keys(r.default)[0]}function _(t,e,n){e=(0,i.default)(e);for(var r=0;r<e.length;r++)e[r].options=(0,o.default)(n,e[r].options),(0,a.default)(e[r].options);(0,a.default)(n),new(0,t.renderer)(t.element,e,n).render(),t.afterRender&&t.afterRender()}p.prototype.options=function(t){return this._options=(0,o.default)(this._options,t),this},p.prototype.blank=function(t){var e=new Array(t+1).join("0");return this._encodings.push({data:e}),this},p.prototype.init=function(){var t;if(this._renderProperties)for(var e in Array.isArray(this._renderProperties)||(this._renderProperties=[this._renderProperties]),this._renderProperties){t=this._renderProperties[e];var n=(0,o.default)(this._options,t.options);"auto"==n.format&&(n.format=b()),this._errorHandler.wrapBarcodeCall((function(){var e=y(n.value,r.default[n.format.toUpperCase()],n);_(t,e,n)}))}},p.prototype.render=function(){if(!this._renderProperties)throw new c.NoElementException;if(Array.isArray(this._renderProperties))for(var t=0;t<this._renderProperties.length;t++)_(this._renderProperties[t],this._encodings,this._options);else _(this._renderProperties,this._encodings,this._options);return this},p.prototype._defaults=l.default,"undefined"!=typeof window&&(window.JsBarcode=h),"undefined"!=typeof jQuery&&(jQuery.fn.JsBarcode=function(t,e){var n=[];return jQuery(this).each((function(){n.push(this)})),h(n,t,e)}),t.exports=h},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=n(9);e.default={CODE128:r.CODE128,CODE128A:r.CODE128A,CODE128B:r.CODE128B,CODE128C:r.CODE128C}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.CODE128C=e.CODE128B=e.CODE128A=e.CODE128=void 0;var r=u(n(10)),o=u(n(13)),i=u(n(14)),a=u(n(15));function u(t){return t&&t.__esModule?t:{default:t}}e.CODE128=r.default,e.CODE128A=o.default,e.CODE128B=i.default,e.CODE128C=a.default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=i(n(1)),o=i(n(12));function i(t){return t&&t.__esModule?t:{default:t}}function a(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}var u=function(t){function e(t,n){if(function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),/^[\x00-\x7F\xC8-\xD3]+$/.test(t))var r=a(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,(0,o.default)(t),n));else r=a(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n));return a(r)}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),e}(r.default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});e.default=function t(e,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.data=e,this.text=n.text||e,this.options=n}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=n(0),o=function(t){return t.match(new RegExp("^"+r.A_CHARS+"*"))[0].length},i=function(t){return t.match(new RegExp("^"+r.B_CHARS+"*"))[0].length},a=function(t){return t.match(new RegExp("^"+r.C_CHARS+"*"))[0]};function u(t,e){var n=e?r.A_CHARS:r.B_CHARS,o=t.match(new RegExp("^("+n+"+?)(([0-9]{2}){2,})([^0-9]|$)"));if(o)return o[1]+String.fromCharCode(204)+s(t.substring(o[1].length));var i=t.match(new RegExp("^"+n+"+"))[0];return i.length===t.length?t:i+String.fromCharCode(e?205:206)+u(t.substring(i.length),!e)}function s(t){var e=a(t),n=e.length;if(n===t.length)return t;t=t.substring(n);var r=o(t)>=i(t);return e+String.fromCharCode(r?206:205)+u(t,r)}e.default=function(t){var e=void 0;if(a(t).length>=2)e=r.C_START_CHAR+s(t);else{var n=o(t)>i(t);e=(n?r.A_START_CHAR:r.B_START_CHAR)+u(t,n)}return e.replace(/[\xCD\xCE]([^])[\xCD\xCE]/,(function(t,e){return String.fromCharCode(203)+e}))}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(1),a=(r=i)&&r.__esModule?r:{default:r},u=n(0);var s=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,u.A_START_CHAR+t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return new RegExp("^"+u.A_CHARS+"+$").test(this.data)}}]),e}(a.default);e.default=s},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(1),a=(r=i)&&r.__esModule?r:{default:r},u=n(0);var s=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,u.B_START_CHAR+t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return new RegExp("^"+u.B_CHARS+"+$").test(this.data)}}]),e}(a.default);e.default=s},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(1),a=(r=i)&&r.__esModule?r:{default:r},u=n(0);var s=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,u.C_START_CHAR+t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return new RegExp("^"+u.C_CHARS+"+$").test(this.data)}}]),e}(a.default);e.default=s},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(t){var e=[];return function t(n){if(Array.isArray(n))for(var r=0;r<n.length;r++)t(n[r]);else n.text=n.text||"",n.data=n.data||"",e.push(n)}(t),e}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(t){return t.marginTop=t.marginTop||t.margin,t.marginBottom=t.marginBottom||t.margin,t.marginRight=t.marginRight||t.margin,t.marginLeft=t.marginLeft||t.margin,t}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t},o=u(n(19)),i=u(n(20)),a=n(6);function u(t){return t&&t.__esModule?t:{default:t}}function s(t){if("string"==typeof t)return function(t){var e=document.querySelectorAll(t);if(0===e.length)return;for(var n=[],r=0;r<e.length;r++)n.push(s(e[r]));return n}(t);if(Array.isArray(t)){for(var e=[],n=0;n<t.length;n++)e.push(s(t[n]));return e}if("undefined"!=typeof HTMLCanvasElement&&t instanceof HTMLImageElement)return u=t,{element:f=document.createElement("canvas"),options:(0,o.default)(u),renderer:i.default.CanvasRenderer,afterRender:function(){u.setAttribute("src",f.toDataURL())}};if(t&&t.nodeName&&"svg"===t.nodeName.toLowerCase()||"undefined"!=typeof SVGElement&&t instanceof SVGElement)return{element:t,options:(0,o.default)(t),renderer:i.default.SVGRenderer};if("undefined"!=typeof HTMLCanvasElement&&t instanceof HTMLCanvasElement)return{element:t,options:(0,o.default)(t),renderer:i.default.CanvasRenderer};if(t&&t.getContext)return{element:t,renderer:i.default.CanvasRenderer};if(t&&"object"===(void 0===t?"undefined":r(t))&&!t.nodeName)return{element:t,renderer:i.default.ObjectRenderer};throw new a.InvalidElementException;var u,f}e.default=s},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=i(n(3)),o=i(n(4));function i(t){return t&&t.__esModule?t:{default:t}}e.default=function(t){var e={};for(var n in o.default)o.default.hasOwnProperty(n)&&(t.hasAttribute("jsbarcode-"+n.toLowerCase())&&(e[n]=t.getAttribute("jsbarcode-"+n.toLowerCase())),t.hasAttribute("data-"+n.toLowerCase())&&(e[n]=t.getAttribute("data-"+n.toLowerCase())));return e.value=t.getAttribute("jsbarcode-value")||t.getAttribute("data-value"),e=(0,r.default)(e)}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=a(n(21)),o=a(n(22)),i=a(n(23));function a(t){return t&&t.__esModule?t:{default:t}}e.default={CanvasRenderer:r.default,SVGRenderer:o.default,ObjectRenderer:i.default}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(2),a=(r=i)&&r.__esModule?r:{default:r},u=n(5);var s=function(){function t(e,n,r){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.canvas=e,this.encodings=n,this.options=r}return o(t,[{key:"render",value:function(){if(!this.canvas.getContext)throw new Error("The browser does not support canvas.");this.prepareCanvas();for(var t=0;t<this.encodings.length;t++){var e=(0,a.default)(this.options,this.encodings[t].options);this.drawCanvasBarcode(e,this.encodings[t]),this.drawCanvasText(e,this.encodings[t]),this.moveCanvasDrawing(this.encodings[t])}this.restoreCanvas()}},{key:"prepareCanvas",value:function(){var t=this.canvas.getContext("2d");t.save(),(0,u.calculateEncodingAttributes)(this.encodings,this.options,t);var e=(0,u.getTotalWidthOfEncodings)(this.encodings),n=(0,u.getMaximumHeightOfEncodings)(this.encodings);this.canvas.width=e+this.options.marginLeft+this.options.marginRight,this.canvas.height=n,t.clearRect(0,0,this.canvas.width,this.canvas.height),this.options.background&&(t.fillStyle=this.options.background,t.fillRect(0,0,this.canvas.width,this.canvas.height)),t.translate(this.options.marginLeft,0)}},{key:"drawCanvasBarcode",value:function(t,e){var n,r=this.canvas.getContext("2d"),o=e.data;n="top"==t.textPosition?t.marginTop+t.fontSize+t.textMargin:t.marginTop,r.fillStyle=t.lineColor;for(var i=0;i<o.length;i++){var a=i*t.width+e.barcodePadding;"1"===o[i]?r.fillRect(a,n,t.width,t.height):o[i]&&r.fillRect(a,n,t.width,t.height*o[i])}}},{key:"drawCanvasText",value:function(t,e){var n,r,o=this.canvas.getContext("2d"),i=t.fontOptions+" "+t.fontSize+"px "+t.font;t.displayValue&&(r="top"==t.textPosition?t.marginTop+t.fontSize-t.textMargin:t.height+t.textMargin+t.marginTop+t.fontSize,o.font=i,"left"==t.textAlign||e.barcodePadding>0?(n=0,o.textAlign="left"):"right"==t.textAlign?(n=e.width-1,o.textAlign="right"):(n=e.width/2,o.textAlign="center"),o.fillText(e.text,n,r))}},{key:"moveCanvasDrawing",value:function(t){this.canvas.getContext("2d").translate(t.width,0)}},{key:"restoreCanvas",value:function(){this.canvas.getContext("2d").restore()}}]),t}();e.default=s},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(2),a=(r=i)&&r.__esModule?r:{default:r},u=n(5);var s="http://www.w3.org/2000/svg",f=function(){function t(e,n,r){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.svg=e,this.encodings=n,this.options=r,this.document=r.xmlDocument||document}return o(t,[{key:"render",value:function(){var t=this.options.marginLeft;this.prepareSVG();for(var e=0;e<this.encodings.length;e++){var n=this.encodings[e],r=(0,a.default)(this.options,n.options),o=this.createGroup(t,r.marginTop,this.svg);this.setGroupOptions(o,r),this.drawSvgBarcode(o,r,n),this.drawSVGText(o,r,n),t+=n.width}}},{key:"prepareSVG",value:function(){for(;this.svg.firstChild;)this.svg.removeChild(this.svg.firstChild);(0,u.calculateEncodingAttributes)(this.encodings,this.options);var t=(0,u.getTotalWidthOfEncodings)(this.encodings),e=(0,u.getMaximumHeightOfEncodings)(this.encodings),n=t+this.options.marginLeft+this.options.marginRight;this.setSvgAttributes(n,e),this.options.background&&this.drawRect(0,0,n,e,this.svg).setAttribute("style","fill:"+this.options.background+";")}},{key:"drawSvgBarcode",value:function(t,e,n){var r,o=n.data;r="top"==e.textPosition?e.fontSize+e.textMargin:0;for(var i=0,a=0,u=0;u<o.length;u++)a=u*e.width+n.barcodePadding,"1"===o[u]?i++:i>0&&(this.drawRect(a-e.width*i,r,e.width*i,e.height,t),i=0);i>0&&this.drawRect(a-e.width*(i-1),r,e.width*i,e.height,t)}},{key:"drawSVGText",value:function(t,e,n){var r,o,i=this.document.createElementNS(s,"text");e.displayValue&&(i.setAttribute("style","font:"+e.fontOptions+" "+e.fontSize+"px "+e.font),o="top"==e.textPosition?e.fontSize-e.textMargin:e.height+e.textMargin+e.fontSize,"left"==e.textAlign||n.barcodePadding>0?(r=0,i.setAttribute("text-anchor","start")):"right"==e.textAlign?(r=n.width-1,i.setAttribute("text-anchor","end")):(r=n.width/2,i.setAttribute("text-anchor","middle")),i.setAttribute("x",r),i.setAttribute("y",o),i.appendChild(this.document.createTextNode(n.text)),t.appendChild(i))}},{key:"setSvgAttributes",value:function(t,e){var n=this.svg;n.setAttribute("width",t+"px"),n.setAttribute("height",e+"px"),n.setAttribute("x","0px"),n.setAttribute("y","0px"),n.setAttribute("viewBox","0 0 "+t+" "+e),n.setAttribute("xmlns",s),n.setAttribute("version","1.1"),n.setAttribute("style","transform: translate(0,0)")}},{key:"createGroup",value:function(t,e,n){var r=this.document.createElementNS(s,"g");return r.setAttribute("transform","translate("+t+", "+e+")"),n.appendChild(r),r}},{key:"setGroupOptions",value:function(t,e){t.setAttribute("style","fill:"+e.lineColor+";")}},{key:"drawRect",value:function(t,e,n,r,o){var i=this.document.createElementNS(s,"rect");return i.setAttribute("x",t),i.setAttribute("y",e),i.setAttribute("width",n),i.setAttribute("height",r),o.appendChild(i),i}}]),t}();e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}();var o=function(){function t(e,n,r){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.object=e,this.encodings=n,this.options=r}return r(t,[{key:"render",value:function(){this.object.encodings=this.encodings}}]),t}();e.default=o},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}();var o=function(){function t(e){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.api=e}return r(t,[{key:"handleCatch",value:function(t){if("InvalidInputException"!==t.name)throw t;if(this.api._options.valid===this.api._defaults.valid)throw t.message;this.api._options.valid(!1),this.api.render=function(){}}},{key:"wrapBarcodeCall",value:function(t){try{var e=t.apply(void 0,arguments);return this.api._options.valid(!0),e}catch(t){return this.handleCatch(t),this.api}}}]),t}();e.default=o}]);</script>
+<script>
+/* ===== CONEXIONES =====
+   · Piloto de bultos: su dirección vive en piloto-config.js (un solo lugar
+     para las dos apps).
+   · Programaciones del planificador: SOLO LECTURA, con el usuario 'patio'
+     (rol visualizador), para comprobar que la factura existe. */
+const CFG=window.PILOTO_BULTOS||{};
+const BULTOS_URL=String(CFG.url||'').trim();
+const BULTOS_CLAVE=String(CFG.clave||'');
+const NUBE_URL='https://script.google.com/macros/s/AKfycbzPfXZFs9GVEfBfDERzGGzxO8OgoRaMOHIg_QO9jOpMP31BkvENFenAP9rubgh_GPcW4Q/exec';
+const NUBE_USUARIO='patio', NUBE_CLAVE='Ptx7q-Huachipa-2026';
+
+let REGS=[];              // registros del piloto (últimos 30 días)
+let PROG={};              // FACTURA -> [{fecha, fechaTxt, placa, cliente}]
+let PROG_OK=null;         // null cargando · true · false (no se pudo consultar)
+let VISTA='registrar', DIA='hoy', DETALLE=null;
+let EDIT_ORIG=null;       // factura que se está corrigiendo (null = registro nuevo)
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normFac=s=>String(s||'').replace(/\s+/g,'').toUpperCase();
+let tT;function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast show'+(err?' err':'');clearTimeout(tT);tT=setTimeout(()=>t.className='toast',2600);}
+function mostrar(id){document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));$(id).classList.add('activa');}
+
+/* Código de cada bulto: FACTURA/NNN. Mismo formato que genera el Apps
+   Script (que es quien manda); aquí solo se usa para la vista previa. */
+const codigosDe=(fac,n)=>Array.from({length:n},(_,i)=>fac+'/'+String(i+1).padStart(3,'0'));
+
+function hoyLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function diaLocal(iso){if(!iso)return '';const d=new Date(iso);if(isNaN(d))return '';return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function horaTxt(iso){const d=new Date(iso);if(isNaN(d))return '';const h=d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});return diaLocal(iso)===hoyLocal()?'hoy '+h:d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit'})+' '+h;}
+
+/* ===== nube ===== */
+async function post(url,body,ms){
+  const c=new AbortController();const t=setTimeout(()=>c.abort(),ms||30000);
+  try{
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    return await res.json();
+  }catch(e){throw new Error(e.name==='AbortError'?'el servidor no respondió a tiempo':e.message);}
+  finally{clearTimeout(t);}
+}
+const api=b=>post(BULTOS_URL,Object.assign({clave:BULTOS_CLAVE},b));
+
+async function cargar(){
+  if(!BULTOS_URL){mostrar('p-config');$('navbar').style.display='none';return;}
+  mostrar('p-cargando');
+  // la programación se consulta en paralelo y NO bloquea: si falla, igual se puede registrar
+  cargarProgramacion();
+  try{
+    const d=await api({accion:'listar',dias:30});
+    if(!d||!d.ok)throw new Error((d&&d.error)||'respuesta inválida');
+    REGS=d.registros||[];
+    $('navbar').style.display='';
+    ir(VISTA==='detalle'?'lista':VISTA);
+  }catch(e){
+    $('errMsg').textContent='No se pudieron traer los registros ('+e.message+'). Revisa el internet e intenta de nuevo.';
+    mostrar('p-error');
+  }
+}
+
+/* Índice de facturas programadas: 15 días atrás y todo lo futuro. Por cada
+   factura, en qué fecha, camión y para qué cliente está programada. */
+async function cargarProgramacion(){
+  PROG_OK=null;
+  try{
+    const d=await post(NUBE_URL,{accion:'listar',usuario:NUBE_USUARIO,clave:NUBE_CLAVE},40000);
+    if(!d||!d.ok)throw new Error((d&&d.error)||'respuesta inválida');
+    const limite=new Date();limite.setDate(limite.getDate()-15);
+    const lim=limite.toISOString().slice(0,10);
+    const porFecha={};
+    (d.registros||[]).forEach(r=>{
+      const f=String((r&&r.fecha)||'');
+      if(!f||f.indexOf('__')===0||!(r.pedidos&&r.pedidos.length))return;
+      if(f.slice(0,10)<lim)return;
+      const prev=porFecha[f];
+      if(!prev||(r.guardadoEn||'')>(prev.guardadoEn||''))porFecha[f]=r;
+    });
+    const idx={};
+    Object.values(porFecha).forEach(r=>{
+      const placas={};(r.unidades||[]).forEach(u=>placas[u.id]=u.placa||'');
+      r.pedidos.forEach(p=>{
+        if(p.baja)return;
+        const f=normFac(p.FACTURA);if(!f)return;
+        (idx[f]=idx[f]||[]).push({fecha:r.fecha,fechaTxt:r.fechaTxt||r.fecha,placa:placas[p.unitId]||'',cliente:String(p.CLIENTES||'').trim()});
+      });
+    });
+    PROG=idx;PROG_OK=true;
+  }catch(e){PROG={};PROG_OK=false;}
+  if(VISTA==='registrar')pintarForm();
+}
+
+/*  Facturas programadas parecidas a lo digitado: un dígito cambiado,
+    faltante, de más, DOS DÍGITOS INVERTIDOS (206 por 260, el error más común
+    al digitar) o el mismo número con sufijo de parcial. La inversión cuenta
+    como un solo error; con la distancia simple contaba como dos y no se
+    sugería. */
+function distancia(a,b){
+  if(Math.abs(a.length-b.length)>2)return 9;
+  const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);
+  for(let j=1;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+    if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);
+  }
+  return d[m][n];
+}
+function parecidas(fac){
+  return Object.keys(PROG).filter(f=>f!==fac&&(f.startsWith(fac+'-')||distancia(fac,f)<=1)).slice(0,4);
+}
+function buscarReg(fac){fac=normFac(fac);return REGS.find(r=>normFac(r.factura)===fac)||null;}
+
+/* ===== navegación ===== */
+function navegar(v){
+  // salir por la barra de abajo cancela una corrección a medias
+  if(EDIT_ORIG){EDIT_ORIG=null;limpiarForm();}
+  ir(v);
+}
+function ir(v){
+  VISTA=v;
+  document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.dataset.v===v||(v==='detalle'&&b.dataset.v==='lista')));
+  if(v==='registrar'){pintarForm();mostrar('p-registrar');}
+  else if(v==='lista'){pintarLista();mostrar('p-lista');}
+  $('cntHoy').textContent=REGS.filter(r=>diaLocal(r.registradoEn)===hoyLocal()).length;
+}
+
+/* ===== formulario ===== */
+function nBultos(){const v=parseInt($('inBultos').value,10);return isNaN(v)?0:v;}
+function paso(d){$('inBultos').value=Math.min(999,Math.max(1,(nBultos()||0)+d));pintarForm();}
+function limpiarForm(){$('inFactura').value='';$('inBultos').value=1;const c=$('inCliente');if(c)c.value='';}
+function usarSugerencia(f){$('inFactura').value=f;pintarForm();}
+
+function progDe(fac){const l=PROG[fac];if(!l||!l.length)return null;return l.slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)))[0];}
+
+function pintarForm(){
+  const fac=normFac($('inFactura').value);
+  const n=nBultos();
+
+  // modo corrección
+  $('editBanner').innerHTML=EDIT_ORIG?`<div class="edit-banner">Corrigiendo la factura <b>${esc(EDIT_ORIG)}</b><button onclick="EDIT_ORIG=null;limpiarForm();pintarForm()">Cancelar</button></div>`:'';
+
+  /* ¿Está programada? Es la defensa contra el número mal digitado: una
+     factura registrada con otro número deja a la verdadera sin control. */
+  const pr=fac?progDe(fac):null;
+  let v='';
+  if(fac.length>=3){
+    if(pr){
+      v=`<div class="verif ok"><span class="ic">✓</span><div>Programada el <b>${esc(pr.fechaTxt)}</b>${pr.placa?' en <b>'+esc(pr.placa)+'</b>':''}</div></div>`;
+    }else if(PROG_OK===true){
+      const sug=parecidas(fac);
+      v=`<div class="verif no"><span class="ic">⚠</span><div><b>No está en las programaciones de los últimos 15 días.</b>
+        Revisa el número en la factura física. Si aún no la programan, puedes registrarla igual.
+        ${sug.length?'<div style="margin-top:6px">¿Quisiste decir…?</div><div class="sugs">'+sug.map(s=>`<button class="sug" data-sug="${esc(s)}">${esc(s)}</button>`).join('')+'</div>':''}</div></div>`;
+    }else if(PROG_OK===false){
+      v=`<div class="verif neutro"><span class="ic">ℹ</span><div>No se pudo consultar la programación. Verifica el número con la factura física.</div></div>`;
+    }else{
+      v=`<div class="verif neutro"><span class="ic">…</span><div>Consultando la programación…</div></div>`;
+    }
+  }
+  $('verifFactura').innerHTML=v;
+
+  // el cliente sale de la programación cuando existe: así el rótulo no puede decir otro nombre
+  const campo=$('clienteCampo');
+  if(pr&&pr.cliente){
+    campo.innerHTML=`<div class="cliente-fijo">${esc(pr.cliente)}<small>Tomado de la programación</small></div>`;
+  }else if(!$('inCliente')){
+    campo.innerHTML='<input class="inp" id="inCliente" placeholder="Nombre del cliente" autocomplete="off">';
+  }
+
+  // vista previa de códigos
+  if(!fac){
+    $('prevCodigos').innerHTML='<span class="vacio-prev">Escribe el número de factura para ver los códigos.</span>';$('prevCant').textContent='';
+  }else if(n<1||n>999){
+    $('prevCodigos').innerHTML='<span class="vacio-prev">La cantidad debe estar entre 1 y 999.</span>';$('prevCant').textContent='';
+  }else{
+    const cods=codigosDe(fac,n), vis=cods.length>12?cods.slice(0,10):cods;
+    $('prevCodigos').innerHTML=vis.map(c=>{const k=c.lastIndexOf('/');return `<span class="cod">${esc(c.slice(0,k+1))}<b>${esc(c.slice(k+1))}</b></span>`;}).join('')+
+      (cods.length>vis.length?`<span class="cod">… y ${cods.length-vis.length} más</span>`:'');
+    $('prevCant').textContent=n===1?'1 rótulo':n+' rótulos';
+  }
+
+  const prev=fac?buscarReg(fac):null;
+  $('avisoExiste').innerHTML=(prev&&fac!==EDIT_ORIG)?`<div class="aviso"><span class="ic">⚠</span><div>
+      <b>Esta factura ya está registrada</b> con ${prev.bultos} ${prev.bultos===1?'bulto':'bultos'}${prev.registradoPor?' por '+esc(prev.registradoPor):''} (${esc(horaTxt(prev.registradoEn))}).
+      Al guardar se reemplaza por lo que pongas aquí.</div></div>`:'';
+
+  const ok=fac.length>=3&&n>=1&&n<=999&&fac.indexOf('/')<0;
+  $('btnGuardar').disabled=!ok;$('btnGuardarImp').disabled=!ok;
+  $('btnGuardar').textContent=EDIT_ORIG?'Guardar corrección':'Guardar';
+}
+
+$('inFactura').addEventListener('input',pintarForm);
+$('inBultos').addEventListener('input',pintarForm);
+$('inBultos').addEventListener('focus',e=>e.target.select());
+$('verifFactura').addEventListener('click',e=>{const b=e.target.closest('[data-sug]');if(b)usarSugerencia(b.dataset.sug);});
+try{$('inQuien').value=localStorage.getItem('bultos_quien')||'';}catch(e){}
+$('inQuien').addEventListener('change',e=>{try{localStorage.setItem('bultos_quien',e.target.value.trim());}catch(err){}});
+
+async function guardar(imprimir){
+  const fac=normFac($('inFactura').value);
+  const n=nBultos();
+  const quien=$('inQuien').value.trim();
+  if(!quien){toast('Escribe tu nombre antes de guardar',true);$('inQuien').focus();return;}
+  if(fac.length<3){toast('Revisa el número de factura',true);return;}
+  if(!(n>=1&&n<=999)){toast('La cantidad de bultos debe estar entre 1 y 999',true);return;}
+  const pr=progDe(fac);
+  const cliente=pr&&pr.cliente?pr.cliente:(($('inCliente')||{}).value||'').trim();
+  const body={accion:'guardar',registro:{factura:fac,bultos:n,cliente,registradoPor:quien}};
+  if(EDIT_ORIG&&EDIT_ORIG!==fac)body.reemplaza=EDIT_ORIG;   // se corrigió el número: mover, no duplicar
+
+  $('btnGuardar').disabled=true;$('btnGuardarImp').disabled=true;
+  try{
+    const d=await api(body);
+    if(!d||!d.ok)throw new Error((d&&d.error)||'respuesta inválida');
+    const g=d.registro;
+    REGS=REGS.filter(r=>normFac(r.factura)!==fac&&normFac(r.factura)!==normFac(body.reemplaza||''));
+    REGS.push(g);
+    toast('✓ Factura '+fac+' · '+n+(n===1?' bulto':' bultos'));
+    if(imprimir)imprimirRotulos(g);
+    const eraCorreccion=!!EDIT_ORIG;
+    EDIT_ORIG=null;limpiarForm();
+    if(eraCorreccion){abrir(fac);return;}
+    ir('registrar');$('inFactura').focus();
+  }catch(e){
+    toast('No se guardó: '+e.message,true);pintarForm();
+  }
+}
+
+/* ===== lista ===== */
+function filtroDia(d){DIA=d;$('segHoy').classList.toggle('on',d==='hoy');$('segTodas').classList.toggle('on',d==='todas');pintarLista();}
+function pintarLista(){
+  const q=$('inBuscar').value.trim().toLowerCase();
+  let lista=REGS.slice().sort((a,b)=>String(b.registradoEn||'').localeCompare(String(a.registradoEn||'')));
+  if(DIA==='hoy')lista=lista.filter(r=>diaLocal(r.registradoEn)===hoyLocal());
+  if(q)lista=lista.filter(r=>(String(r.factura)+' '+String(r.cliente||'')).toLowerCase().includes(q));
+  const cont=$('lista');
+  if(!lista.length){
+    cont.innerHTML=`<div class="vacio"><div class="ic">📦</div>${q?'Ninguna factura coincide con la búsqueda.':DIA==='hoy'?'Todavía no se registra ninguna factura hoy.<br>Toca «Registrar» abajo para empezar.':'No hay facturas registradas en los últimos 30 días.'}</div>`;
+    return;
+  }
+  const tot=lista.reduce((s,r)=>s+(Number(r.bultos)||0),0);
+  cont.innerHTML=`<h2>${lista.length} ${lista.length===1?'factura':'facturas'} · ${tot} ${tot===1?'bulto':'bultos'}</h2>`+lista.map(r=>`
+    <div class="reg" data-fac="${esc(r.factura)}">
+      <div class="b"><div class="n">${Number(r.bultos)||0}</div><div class="u">${r.bultos===1?'bulto':'bultos'}</div></div>
+      <div class="i">
+        <div class="f">${esc(r.factura)}</div>
+        <div class="c">${r.cliente?esc(r.cliente):'<span style="color:var(--gris)">Sin cliente</span>'}</div>
+        <div class="m">${esc(r.registradoPor||'—')} · ${esc(horaTxt(r.registradoEn))}</div>
+      </div>
+      <div class="chev">›</div>
+    </div>`).join('');
+}
+$('lista').addEventListener('click',e=>{const c=e.target.closest('[data-fac]');if(c)abrir(c.dataset.fac);});
+
+/* ===== detalle ===== */
+function abrir(fac){
+  const r=buscarReg(fac);if(!r)return;
+  DETALLE=r.factura;VISTA='detalle';
+  document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.dataset.v==='lista'));
+  pintarDetalle(false);mostrar('p-detalle');
+}
+function pintarDetalle(confirmando){
+  const r=buscarReg(DETALLE);if(!r){ir('lista');return;}
+  const pr=progDe(normFac(r.factura));
+  $('detalle').innerHTML=`
+    <div class="card">
+      <div class="det-cab">
+        <div class="f">${esc(r.factura)}</div>
+        <div class="c">${r.cliente?esc(r.cliente):'Sin cliente'}</div>
+        <div class="m">${Number(r.bultos)} ${r.bultos===1?'bulto':'bultos'} · registró ${esc(r.registradoPor||'—')}, ${esc(horaTxt(r.registradoEn))}</div>
+        <div class="m">${pr?'✓ Programada el '+esc(pr.fechaTxt)+(pr.placa?' en '+esc(pr.placa):''):(PROG_OK?'⚠ No está en las programaciones recientes':'')}</div>
+      </div>
+    </div>
+    <div class="card cod-lista">
+      <label class="lbl">Código único de cada bulto</label>
+      ${(r.codigos||[]).map((c,i)=>`<div class="fila"><div class="nro">${i+1}</div><div class="cc">${esc(c)}</div></div>`).join('')}
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <button class="btn sec" onclick="ir('lista')">‹ Volver</button>
+      <button class="btn sec" onclick="editar()">Corregir</button>
+      <button class="btn pri" onclick="imprimirRotulos(buscarReg(DETALLE))">Imprimir</button>
+    </div>
+    ${confirmando?`<div class="confirma"><p>¿Eliminar el registro de la factura <b>${esc(r.factura)}</b>? La app de patio dejará de controlar sus bultos.</p>
+      <div class="fila-btn"><button class="no" onclick="pintarDetalle(false)">Cancelar</button><button class="si" onclick="eliminar()">Sí, eliminar</button></div></div>`
+      :`<button class="peligro" onclick="pintarDetalle(true)">Eliminar registro</button>`}`;
+}
+function editar(){
+  const r=buscarReg(DETALLE);if(!r)return;
+  EDIT_ORIG=normFac(r.factura);
+  $('inFactura').value=r.factura;$('inBultos').value=r.bultos;
+  ir('registrar');
+  const c=$('inCliente');if(c)c.value=r.cliente||'';
+}
+async function eliminar(){
+  const fac=DETALLE;
+  try{
+    const d=await api({accion:'eliminar',factura:fac,quien:$('inQuien').value.trim()});
+    if(!d||!d.ok)throw new Error((d&&d.error)||'respuesta inválida');
+    REGS=REGS.filter(r=>normFac(r.factura)!==normFac(fac));
+    toast('Registro eliminado');ir('lista');
+  }catch(e){toast('No se eliminó: '+e.message,true);}
+}
+
+/* ===== rótulos de prueba =====
+   Solo para el piloto: se pegan junto al rótulo actual. El formato
+   definitivo lo decidirá el Excel que imprime los rótulos. */
+function imprimirRotulos(r){
+  if(!r)return;
+  if(typeof JsBarcode!=='function'){toast('No se pudo generar el código de barras',true);return;}
+  const cont=$('impresion');
+  cont.innerHTML=(r.codigos||[]).map((c,i)=>`
+    <div class="rotulo">
+      <div class="emp">PROVEFABRICA DEL PERÚ</div>
+      <div class="fac">FACTURA ${esc(r.factura)}</div>
+      <div class="cli">${esc(r.cliente||'')}</div>
+      <div class="bul">BULTO ${i+1} / ${Number(r.bultos)}</div>
+      <svg class="bc" data-cod="${esc(c)}"></svg>
+      <div class="pie">Rótulo de prueba · piloto de control de bultos</div>
+    </div>`).join('');
+  cont.querySelectorAll('svg.bc').forEach(s=>{
+    try{JsBarcode(s,s.dataset.cod,{format:'CODE128',width:2,height:60,fontSize:16,margin:4,textMargin:2});}catch(e){}
+  });
+  setTimeout(()=>window.print(),150);
+}
+
+pintarForm();
+cargar();
+</script>
+</body>
+</html>

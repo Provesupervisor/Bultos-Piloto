@@ -1209,6 +1209,8 @@ function volverAFechas(){
   renderFechas();mostrar('p-fechas');pintarCascara();
 }
 document.addEventListener('click',e=>{const c=e.target.closest('.cam-card[data-placa]');if(c)abrirCamion(c.dataset.placa);});
+/* "28/9/2026, 8:06:10 a. m." → "8:06 a. m." (antes se tomaba la última palabra y salía solo "m.") */
+function horaSalida(txt){const m=/(\d{1,2}:\d{2})(?::\d{2})?\s*([ap]\.?\s?m\.?)?/i.exec(String(txt||''));return m?(m[1]+(m[2]?' '+m[2]:'')):'';}
 function renderLista(){
   const cont=document.getElementById('listaCam');const todos=Object.values(CAMIONES);const pend=todos.filter(c=>!c.cerrado).length;
   if(!todos.length){cont.innerHTML='<div class="centro"><div class="ic">📦</div><h2>Sin camiones</h2><p>Esta programación no tiene facturas asignadas a unidades.</p></div>';return;}
@@ -1231,7 +1233,7 @@ function renderLista(){
     /*  Dos filas: arriba placa, ruta y avance; abajo la barra y los números.
         Antes todo iba en una fila y con rutas largas ("SAN JUAN DE LURIGANCHO
         NORTE") el nombre se partía palabra por palabra y pisaba los números. */
-    const meta=c.cerrado?`<span class="m">Salida autorizada${c.hora?' · '+esc(String(c.hora).split(' ').pop()||''):''}</span>`
+    const meta=c.cerrado?`<span class="m">Salida autorizada${horaSalida(c.hora)?' · '+esc(horaSalida(c.hora)):''}${c.responsable?' · '+esc(c.responsable):''}</span>`
       :`<span class="m"><b>${e.ok}/${e.t}</b> facturas</span>`+(e.bTot?`<span class="m"><b>${e.bOk}/${e.bTot}</b> bultos</span>`:'')+
        (BULTOS_OK&&e.fSin?`<span class="m sinreg">${e.fSin} sin registro</span>`:'');
     return `<div class="cam-card ${cls}" data-placa="${esc(c.placa)}">

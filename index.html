@@ -783,11 +783,14 @@ function outProgs(){const ks=new Set(Object.keys(OUT_MEM).filter(k=>OUT_MEM[k].l
   return [...ks];}
 function pendientes(){return PROG_ACT?outLeer(PROG_ACT.fecha).length:0;}
 let SYNC={prog:null,desde:1,ok:null,t:0,pidiendo:false,enviando:false,fallos:0,enviarT:null};
+/* Lo que la hoja "Avance" ya sabe de esta programación (se llena al leerla). */
+let SRV={bultos:new Set(),marcas:new Set(),cierres:new Set()};
 let SEQ=0;
-function emitir(tipo,placa,factura,codigo,valor){
+function emitir(tipo,placa,factura,codigo,valor,extra){
   if(!BULTOS_URL||!PROG_ACT)return;
+  extra=extra||{};
   const ev={id:DISP+'-'+Date.now().toString(36)+'-'+(++SEQ),tipo,placa,factura:factura||'',codigo:codigo||'',valor:valor||'',
-    quien:miNombre(),disp:DISP,hora:new Date().toISOString()};
+    quien:extra.quien!==undefined?extra.quien:miNombre(),disp:DISP,hora:extra.hora||new Date().toISOString()};
   const prog=PROG_ACT.fecha;const a=outLeer(prog);a.push(ev);outEscribir(prog,a);
   programarEnvio(250);pintarSync();
 }
@@ -826,13 +829,15 @@ async function leerAvance(forzar){
   if(!BULTOS_URL||!PROG_ACT||SYNC.pidiendo)return;
   if(!forzar&&Date.now()-SYNC.t<4000)return;
   const prog=PROG_ACT;
-  if(SYNC.prog!==prog.fecha){SYNC.prog=prog.fecha;SYNC.desde=1;SYNC.ok=null;SYNC.t=0;}
+  if(SYNC.prog!==prog.fecha){SYNC.prog=prog.fecha;SYNC.desde=1;SYNC.ok=null;SYNC.t=0;SRV={bultos:new Set(),marcas:new Set(),cierres:new Set()};}
   SYNC.pidiendo=true;
+  const completa=SYNC.desde<=1;
   try{
     const d=await postPiloto({accion:'progreso',prog:prog.fecha,desde:SYNC.desde},20000);
     if(prog!==PROG_ACT)return;
     aplicarEventos(d.eventos||[]);
     SYNC.desde=Number(d.hasta)||SYNC.desde;SYNC.ok=true;SYNC.t=Date.now();
+    if(completa||d.reinicio)subirLoQueFalta();
   }catch(e){if(prog===PROG_ACT)SYNC.ok=false;}
   finally{SYNC.pidiendo=false;pintarSync();}
 }
@@ -843,6 +848,11 @@ function itemDe(placa,fac){
   return it;
 }
 function aplicarEventos(evs){
+  evs.forEach(e=>{
+    if(e.tipo==='bulto')SRV.bultos.add(canonico(normFac(e.codigo)));
+    else if(e.tipo==='marca')SRV.marcas.add(normFac(e.factura));
+    else if(e.tipo==='cierre')SRV.cierres.add(e.placa);
+  });
   if(!evs.length)return;
   const pend=new Set(outLeer(PROG_ACT.fecha).filter(e=>e.tipo==='marca').map(e=>normFac(e.factura)));
   let cambio=false,cerradoAqui=false;
@@ -868,6 +878,30 @@ function aplicarEventos(evs){
   if(!cambio)return;
   guardar();repintar();
   if(cerradoAqui){if(scanning)cerrarScanner();toast('Otro celular autorizó la salida de este camión');}
+}
+/*  Lo que este celular tiene y la hoja no.
+    Pasa con lo escaneado ANTES de que existiera el avance compartido (quedó
+    solo en el celular), o si alguna vez se perdió un envío. Después de leer
+    todo lo de la hoja, se compara con lo guardado aquí y se envía lo que
+    falta, con su hora original. Solo se agrega: nunca borra ni desmarca nada
+    en los otros celulares. */
+function subirLoQueFalta(){
+  if(!PROG_ACT)return;
+  const pend=outLeer(PROG_ACT.fecha);
+  const enBandeja=new Set(pend.map(e=>e.tipo+'|'+(e.tipo==='bulto'?canonico(normFac(e.codigo)):e.tipo==='marca'?normFac(e.factura):e.placa)));
+  let n=0;
+  Object.values(CAMIONES).forEach(c=>{
+    c.items.forEach(i=>{
+      i.leidos.forEach(cod=>{
+        if(SRV.bultos.has(cod)||enBandeja.has('bulto|'+cod))return;
+        const p=i.por&&i.por[cod];
+        emitir('bulto',c.placa,i.factura,cod,'',{hora:(i.horas&&i.horas[cod])||undefined,quien:p?p.q:''});n++;
+      });
+      if(!i.codigos&&i.marcado&&!SRV.marcas.has(i.facN)&&!enBandeja.has('marca|'+i.facN)){emitir('marca',c.placa,i.factura,'','1');n++;}
+    });
+    if(c.cerrado&&!SRV.cierres.has(c.placa)&&!enBandeja.has('cierre|'+c.placa)){emitir('cierre',c.placa,'','',c.responsable||'');n++;}
+  });
+  if(n)console.log('[avance] enviando '+n+' acciones que solo estaban en este celular');
 }
 /* Quién escaneó un bulto, en pocas palabras: "este celular", "Luis", "otro celular". */
 function porTxt(it,cod){const p=it.por&&it.por[cod];if(!p)return '';if(p.d===DISP)return p.q||'este celular';return p.q||'otro celular';}

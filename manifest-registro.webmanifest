@@ -1,0 +1,17 @@
+{
+  "name": "Registro de Bultos · Piloto — Provefabrica",
+  "short_name": "Registro Bultos",
+  "description": "Picking: registra cada factura con sus bultos e imprime un rótulo con código único por bulto.",
+  "start_url": "./registro-bultos.html",
+  "scope": "./registro-bultos.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F5F7",
+  "theme_color": "#E1001A",
+  "lang": "es-PE",
+  "icons": [
+    { "src": "icono-registro-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icono-registro-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icono-registro-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

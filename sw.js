@@ -21,10 +21,11 @@
     mío", borraría la caché de la app actual. Solo borra versiones viejas del
     piloto. */
 const PREFIJO = 'bultos-piloto-';
-const VERSION = PREFIJO + 'v1';
+const VERSION = PREFIJO + 'v2';
 const BASICOS = [
   './', './index.html', './registro-bultos.html', './piloto-config.js',
-  './manifest.webmanifest', './icono-192.png', './icono-512.png'
+  './manifest.webmanifest', './icono-192.png', './icono-512.png',
+  './manifest-registro.webmanifest', './icono-registro-192.png', './icono-registro-512.png'
 ];
 
 self.addEventListener('install', ev => {
@@ -66,7 +67,7 @@ self.addEventListener('fetch', ev => {
     // red primero; caché solo si no hay señal
     ev.respondWith(
       fetch(req).then(res => guardar(req, res))
-        .catch(() => caches.match(req).then(r => r || (req.mode === 'navigate' ? caches.match('./index.html') : undefined)))
+        .catch(() => caches.match(req).then(r => r || (req.mode === 'navigate' ? caches.match(url.pathname.indexOf('registro') >= 0 ? './registro-bultos.html' : './index.html') : undefined)))
     );
     return;
   }

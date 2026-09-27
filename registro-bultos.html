@@ -5,7 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#E1001A">
 <title>Registro de Bultos — Provefabrica</title>
-<link rel="apple-touch-icon" href="icono-192.png">
+<link rel="manifest" href="manifest-registro.webmanifest">
+<link rel="apple-touch-icon" href="icono-registro-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Registro Bultos">
 <style>
   :root{
     --rojo:#E1001A; --rojo-osc:#B00014;
@@ -86,10 +90,35 @@
   .btn:disabled{opacity:.45;box-shadow:none;cursor:default}
 
   /* lista de registradas */
-  .barra-lista{padding:12px 16px;background:var(--suave);border-bottom:1px solid var(--linea);flex-shrink:0;display:flex;gap:8px}
-  .barra-lista .inp{flex:1;padding:11px 13px;font-size:15px}
+  /* buscador arriba y, debajo, los tres filtros a todo el ancho */
+  .barra-lista{padding:10px 16px 12px;background:var(--suave);border-bottom:1px solid var(--linea);flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+  .barra-lista .inp{width:100%;padding:11px 13px;font-size:15px}
   .seg{display:flex;background:#E7E9ED;border-radius:11px;padding:3px;flex-shrink:0}
-  .seg button{border:0;background:none;padding:8px 12px;border-radius:9px;font-family:inherit;font-size:13px;font-weight:800;color:var(--gris);cursor:pointer}
+  .seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:9px;font-family:inherit;font-size:13px;font-weight:800;color:var(--gris);cursor:pointer;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:5px}
+  .seg button:disabled{opacity:.45;cursor:default}
+  .seg .n{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--amar);color:#3A2B00;font-size:11px;line-height:18px}
+  .seg .n:empty{display:none}
+  /* estado frente a la programación */
+  .tg{display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:20px;vertical-align:2px;margin-left:6px;white-space:nowrap}
+  .tg.ok{background:#E3F4EA;color:#0E7C3A}
+  .tg.sin{background:var(--amar);color:#3A2B00}
+  .reg.sinprog{border-left-color:var(--amar)}
+  .reg.sinprog .b{background:var(--amar);color:#3A2B00}
+  .reg .m .alerta{color:#8A5A00;font-weight:700}
+  .lista h2 .sin{color:#8A5A00}
+  .nota-sin{background:var(--amar-fondo);border:1.5px solid #F2D48A;color:#6B4A00;border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.45;margin-bottom:12px}
+  .nota-sin b{color:#4A3300}
+  .det-cab .estado{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:800;padding:5px 10px;border-radius:9px}
+  .det-cab .estado.ok{background:#E3F4EA;color:#0E7C3A}
+  .det-cab .estado.sin{background:var(--amar-fondo);color:#6B4A00;border:1.5px solid #F2D48A;font-weight:600;line-height:1.45}
+  /* instalar en el celular */
+  .inst-banner{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:14px;padding:11px 12px 11px 14px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-left:5px solid var(--rojo);margin-bottom:12px}
+  .inst-banner .ic{font-size:22px;flex-shrink:0}
+  .inst-banner .tx{flex:1;min-width:0;font-size:12px;color:var(--gris);line-height:1.3}
+  .inst-banner .tx b{display:block;font-size:14px;color:var(--tinta)}
+  .inst-banner .si{background:var(--rojo);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0}
+  .inst-banner .no{background:none;border:0;color:var(--gris);font-size:18px;width:30px;height:30px;cursor:pointer;flex-shrink:0;padding:0}
+  .inst-guia{font-size:12.5px;color:var(--tinta);line-height:1.5;margin-top:6px}
   .seg button.on{background:#fff;color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.1)}
   .lista h2{font-size:12.5px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;margin:4px 2px 10px;font-weight:800}
   .reg{background:var(--panel);border-radius:14px;padding:14px 14px 14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:14px;cursor:pointer;border-left:5px solid var(--rojo)}
@@ -198,6 +227,7 @@
   <!-- registrar -->
   <div class="pantalla" id="p-registrar">
     <div class="scroll"><div class="pad">
+      <div id="instBanner"></div>
       <div id="editBanner"></div>
       <div class="card">
         <label class="lbl" for="inQuien">Quién registra</label>
@@ -242,7 +272,7 @@
   <div class="pantalla" id="p-lista">
     <div class="barra-lista">
       <input class="inp" id="inBuscar" type="search" placeholder="Buscar…" aria-label="Buscar factura o cliente" oninput="pintarLista()">
-      <div class="seg"><button id="segHoy" class="on" onclick="filtroDia('hoy')">Hoy</button><button id="segTodas" onclick="filtroDia('todas')">30 días</button></div>
+      <div class="seg"><button id="segHoy" class="on" onclick="filtroDia('hoy')">Hoy</button><button id="segTodas" onclick="filtroDia('todas')">30 días</button><button id="segSin" onclick="filtroDia('sin')">Sin programar<span class="n" id="cntSin"></span></button></div>
     </div>
     <div class="scroll"><div class="pad lista" id="lista"></div></div>
   </div>
@@ -325,15 +355,22 @@ async function cargar(){
   }
 }
 
-/* Índice de facturas programadas: 15 días atrás y todo lo futuro. Por cada
-   factura, en qué fecha, camión y para qué cliente está programada. */
+/* Índice de facturas programadas: 45 días atrás y todo lo futuro. Por cada
+   factura, en qué fecha, camión y para qué cliente está programada.
+   45 días y no 15: la lista de registradas llega a 30 días atrás, y una
+   factura registrada hace 25 días que se programó al día siguiente saldría
+   «Sin programar» si el índice solo mirara 15. Las SUGERENCIAS de número
+   parecido sí usan solo los últimos 15 días (LIM_SUG): con más facturas
+   habría más parecidos que no tienen nada que ver. */
+let LIM_SUG='';
 async function cargarProgramacion(){
   PROG_OK=null;
   try{
     const d=await post(NUBE_URL,{accion:'listar',usuario:NUBE_USUARIO,clave:NUBE_CLAVE},40000);
     if(!d||!d.ok)throw new Error((d&&d.error)||'respuesta inválida');
-    const limite=new Date();limite.setDate(limite.getDate()-15);
+    const limite=new Date();limite.setDate(limite.getDate()-45);
     const lim=limite.toISOString().slice(0,10);
+    const l15=new Date();l15.setDate(l15.getDate()-15);LIM_SUG=l15.toISOString().slice(0,10);
     const porFecha={};
     (d.registros||[]).forEach(r=>{
       const f=String((r&&r.fecha)||'');
@@ -354,6 +391,9 @@ async function cargarProgramacion(){
     PROG=idx;PROG_OK=true;
   }catch(e){PROG={};PROG_OK=false;}
   if(VISTA==='registrar')pintarForm();
+  else if(VISTA==='lista')pintarLista();
+  else if(VISTA==='detalle')pintarDetalle(false);
+  contarSinProg();
 }
 
 /*  Facturas programadas parecidas a lo digitado: un dígito cambiado,
@@ -372,7 +412,7 @@ function distancia(a,b){
   return d[m][n];
 }
 function parecidas(fac){
-  return Object.keys(PROG).filter(f=>f!==fac&&(f.startsWith(fac+'-')||distancia(fac,f)<=1)).slice(0,4);
+  return Object.keys(PROG).filter(f=>f!==fac&&PROG[f].some(x=>String(x.fecha).slice(0,10)>=LIM_SUG)&&(f.startsWith(fac+'-')||distancia(fac,f)<=1)).slice(0,4);
 }
 function buscarReg(fac){fac=normFac(fac);return REGS.find(r=>normFac(r.factura)===fac)||null;}
 
@@ -388,6 +428,7 @@ function ir(v){
   if(v==='registrar'){pintarForm();mostrar('p-registrar');}
   else if(v==='lista'){pintarLista();mostrar('p-lista');}
   $('cntHoy').textContent=REGS.filter(r=>diaLocal(r.registradoEn)===hoyLocal()).length;
+  contarSinProg();
 }
 
 /* ===== formulario ===== */
@@ -414,7 +455,7 @@ function pintarForm(){
       v=`<div class="verif ok"><span class="ic">✓</span><div>Programada el <b>${esc(pr.fechaTxt)}</b>${pr.placa?' en <b>'+esc(pr.placa)+'</b>':''}</div></div>`;
     }else if(PROG_OK===true){
       const sug=parecidas(fac);
-      v=`<div class="verif no"><span class="ic">⚠</span><div><b>No está en las programaciones de los últimos 15 días.</b>
+      v=`<div class="verif no"><span class="ic">⚠</span><div><b>No está en las programaciones de los últimos 45 días.</b>
         Revisa el número en la factura física. Si aún no la programan, puedes registrarla igual.
         ${sug.length?'<div style="margin-top:6px">¿Quisiste decir…?</div><div class="sugs">'+sug.map(s=>`<button class="sug" data-sug="${esc(s)}">${esc(s)}</button>`).join('')+'</div>':''}</div></div>`;
     }else if(PROG_OK===false){
@@ -493,28 +534,48 @@ async function guardar(imprimir){
 }
 
 /* ===== lista ===== */
-function filtroDia(d){DIA=d;$('segHoy').classList.toggle('on',d==='hoy');$('segTodas').classList.toggle('on',d==='todas');pintarLista();}
+function filtroDia(d){DIA=d;$('segHoy').classList.toggle('on',d==='hoy');$('segTodas').classList.toggle('on',d==='todas');$('segSin').classList.toggle('on',d==='sin');pintarLista();}
+/*  ¿La factura ya está en alguna programación? 'ok', 'sin', o null si no se
+    pudo consultar el planificador (entonces no se afirma nada). La consulta
+    se repite cada vez que se abre la app o se toca ↻, así que una factura
+    que se programa después pasa sola de «Sin programar» a «Programada». */
+function estadoProg(r){if(PROG_OK!==true)return null;return progDe(normFac(r.factura))?'ok':'sin';}
+function diasDesde(iso){const t=new Date(iso).getTime();return isNaN(t)?0:Math.floor((Date.now()-t)/86400000);}
+function contarSinProg(){
+  const n=PROG_OK===true?REGS.filter(r=>estadoProg(r)==='sin').length:0;
+  $('cntSin').textContent=n||'';
+  $('segSin').disabled=PROG_OK!==true;
+  $('segSin').title=PROG_OK===true?'':'No se pudo consultar las programaciones';
+}
 function pintarLista(){
   const q=$('inBuscar').value.trim().toLowerCase();
   let lista=REGS.slice().sort((a,b)=>String(b.registradoEn||'').localeCompare(String(a.registradoEn||'')));
   if(DIA==='hoy')lista=lista.filter(r=>diaLocal(r.registradoEn)===hoyLocal());
+  if(DIA==='sin')lista=lista.filter(r=>estadoProg(r)==='sin');
   if(q)lista=lista.filter(r=>(String(r.factura)+' '+String(r.cliente||'')).toLowerCase().includes(q));
   const cont=$('lista');
   if(!lista.length){
-    cont.innerHTML=`<div class="vacio"><div class="ic">📦</div>${q?'Ninguna factura coincide con la búsqueda.':DIA==='hoy'?'Todavía no se registra ninguna factura hoy.<br>Toca «Registrar» abajo para empezar.':'No hay facturas registradas en los últimos 30 días.'}</div>`;
+    cont.innerHTML=`<div class="vacio"><div class="ic">${DIA==='sin'&&!q?'✓':'📦'}</div>${q?'Ninguna factura coincide con la búsqueda.':DIA==='sin'?'Todas las facturas registradas en los últimos 30 días ya están programadas.':DIA==='hoy'?'Todavía no se registra ninguna factura hoy.<br>Toca «Registrar» abajo para empezar.':'No hay facturas registradas en los últimos 30 días.'}</div>`;
     return;
   }
   const tot=lista.reduce((s,r)=>s+(Number(r.bultos)||0),0);
-  cont.innerHTML=`<h2>${lista.length} ${lista.length===1?'factura':'facturas'} · ${tot} ${tot===1?'bulto':'bultos'}</h2>`+lista.map(r=>`
-    <div class="reg" data-fac="${esc(r.factura)}">
+  const nSin=lista.filter(r=>estadoProg(r)==='sin').length;
+  cont.innerHTML=`<h2>${lista.length} ${lista.length===1?'factura':'facturas'} · ${tot} ${tot===1?'bulto':'bultos'}${nSin&&DIA!=='sin'?` · <span class="sin">${nSin} sin programar</span>`:''}</h2>`+
+    (DIA==='sin'?`<div class="nota-sin">Estas facturas todavía <b>no aparecen en ninguna programación</b>. Se enlazan solas cuando las programen. Si pasa un día y siguen aquí, revisa el número contra la factura física o si la programaron con sufijo (parcial -2, REP-…): en ese caso usa <b>Corregir</b> y reimprime los rótulos.</div>`:'')+
+    lista.map(r=>{
+      const e=estadoProg(r), pr=e==='ok'?progDe(normFac(r.factura)):null, dd=diasDesde(r.registradoEn);
+      const tag=e==='ok'?`<span class="tg ok">✓ ${esc(pr.placa||'Programada')}</span>`:e==='sin'?'<span class="tg sin">Sin programar</span>':'';
+      const extra=e==='sin'&&dd>=1?` · <span class="alerta">hace ${dd} ${dd===1?'día':'días'}</span>`:e==='ok'?` · prog. ${esc(String(pr.fechaTxt).replace(/\/\d{4}$/,''))}`:'';
+      return `
+    <div class="reg${e==='sin'?' sinprog':''}" data-fac="${esc(r.factura)}">
       <div class="b"><div class="n">${Number(r.bultos)||0}</div><div class="u">${r.bultos===1?'bulto':'bultos'}</div></div>
       <div class="i">
-        <div class="f">${esc(r.factura)}</div>
+        <div class="f">${esc(r.factura)}${tag}</div>
         <div class="c">${r.cliente?esc(r.cliente):'<span style="color:var(--gris)">Sin cliente</span>'}</div>
-        <div class="m">${esc(r.registradoPor||'—')} · ${esc(horaTxt(r.registradoEn))}</div>
+        <div class="m">${esc(r.registradoPor||'—')} · ${esc(horaTxt(r.registradoEn))}${extra}</div>
       </div>
       <div class="chev">›</div>
-    </div>`).join('');
+    </div>`;}).join('');
 }
 $('lista').addEventListener('click',e=>{const c=e.target.closest('[data-fac]');if(c)abrir(c.dataset.fac);});
 
@@ -523,7 +584,7 @@ function abrir(fac){
   const r=buscarReg(fac);if(!r)return;
   DETALLE=r.factura;VISTA='detalle';
   document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.dataset.v==='lista'));
-  pintarDetalle(false);mostrar('p-detalle');
+  pintarDetalle(false);mostrar('p-detalle');contarSinProg();
 }
 function pintarDetalle(confirmando){
   const r=buscarReg(DETALLE);if(!r){ir('lista');return;}
@@ -534,7 +595,8 @@ function pintarDetalle(confirmando){
         <div class="f">${esc(r.factura)}</div>
         <div class="c">${r.cliente?esc(r.cliente):'Sin cliente'}</div>
         <div class="m">${Number(r.bultos)} ${r.bultos===1?'bulto':'bultos'} · registró ${esc(r.registradoPor||'—')}, ${esc(horaTxt(r.registradoEn))}</div>
-        <div class="m">${pr?'✓ Programada el '+esc(pr.fechaTxt)+(pr.placa?' en '+esc(pr.placa):''):(PROG_OK?'⚠ No está en las programaciones recientes':'')}</div>
+        ${pr?`<div class="estado ok">✓ Programada el ${esc(pr.fechaTxt)}${pr.placa?' en '+esc(pr.placa):''}</div>`
+           :PROG_OK?`<div class="estado sin">⚠ Sin programar: se enlaza sola cuando la programen. Si la programan con otro número o con sufijo, usa «Corregir».</div>`:''}
       </div>
     </div>
     <div class="card cod-lista">
@@ -589,6 +651,40 @@ function imprimirRotulos(r){
   setTimeout(()=>window.print(),150);
 }
 
+/* ===== instalar en el celular =====
+   Aparece arriba del formulario mientras la app no esté instalada. Si Chrome
+   ofrece instalarla, el botón abre su ventana de instalación. Si no la ofrece
+   (iPhone, o Chrome todavía no la habilita), el botón explica cómo hacerlo
+   desde el menú del navegador. La ✕ la oculta por 7 días. */
+let pedidoInstalar=null;
+const KEY_INST='registro_inst_oculto_hasta';
+function yaInstalada(){try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;}catch(e){return false;}}
+function instOculto(){try{return Number(localStorage.getItem(KEY_INST)||0)>Date.now();}catch(e){return false;}}
+function pintarInstalar(guia){
+  const el=$('instBanner');if(!el)return;
+  if(yaInstalada()||instOculto()){el.innerHTML='';return;}
+  const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const pasos=ios?'En Safari toca <b>Compartir</b> (el cuadrado con la flecha ↑) y luego <b>«Agregar a inicio»</b>.'
+                 :'Toca el menú <b>⋮</b> del navegador (arriba a la derecha) y elige <b>«Instalar aplicación»</b> o <b>«Agregar a pantalla principal»</b>.';
+  el.innerHTML=`<div class="inst-banner"><span class="ic">📲</span>
+    <div class="tx"><b>Instala la app en este celular</b>${guia?`<div class="inst-guia">${pasos}</div>`:'Ábrela desde tu pantalla de inicio'}</div>
+    ${guia?'':'<button class="si" onclick="instalarApp()">Instalar</button>'}
+    <button class="no" onclick="ocultarInstalar()" aria-label="Ocultar">✕</button></div>`;
+}
+async function instalarApp(){
+  if(!pedidoInstalar){pintarInstalar(true);return;}
+  const p=pedidoInstalar;pedidoInstalar=null;
+  p.prompt();
+  let r=null;try{r=await p.userChoice;}catch(e){}
+  if(r&&r.outcome==='accepted')$('instBanner').innerHTML='';
+  else pintarInstalar(true);     // si la cerró, queda la explicación para hacerlo luego desde el menú
+}
+function ocultarInstalar(){try{localStorage.setItem(KEY_INST,String(Date.now()+7*86400000));}catch(e){}$('instBanner').innerHTML='';}
+window.addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();pedidoInstalar=ev;pintarInstalar(false);});
+window.addEventListener('appinstalled',()=>{pedidoInstalar=null;$('instBanner').innerHTML='';toast('✓ Instalada. Búscala en tu pantalla de inicio: «Registro Bultos»');});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+
+pintarInstalar(false);
 pintarForm();
 cargar();
 </script>

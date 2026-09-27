@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#E1001A">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icono-192.png">
@@ -23,17 +23,26 @@
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
-  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;background:var(--fondo);color:var(--tinta);-webkit-font-smoothing:antialiased;overscroll-behavior:none;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;background:var(--fondo);color:var(--tinta);-webkit-font-smoothing:antialiased;overscroll-behavior:none;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
   .app{max-width:520px;width:100%;margin:0 auto;flex:1;display:flex;flex-direction:column;background:#F4F5F7;position:relative;overflow:hidden}
 
-  .top{background:var(--rojo);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:var(--sombra);z-index:20}
-  .top .logo{width:34px;height:34px;background:#fff;color:var(--rojo);border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:18px}
+  /*  Cabecera de una sola línea a cualquier ancho. Todo lo que no es el título
+      tiene ancho fijo y no se encoge; el título toma el resto. Con el botón
+      atrás visible el logo se oculta (repetía la marca y le quitaba espacio
+      al número de factura, que salía como «10…»). */
+  .top{background:var(--rojo);color:#fff;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));
+    padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right));
+    display:flex;align-items:center;gap:10px;flex-shrink:0;box-shadow:var(--sombra);z-index:20;min-height:60px}
+  .top .logo{width:38px;height:38px;background:#fff;color:var(--rojo);border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:19px;flex-shrink:0}
+  .top .back:not([style*="none"]) + .logo{display:none}
   .top .t{flex:1;min-width:0}
-  .top .t h1{font-size:15px;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .top .t p{font-size:11.5px;opacity:.9}
-  .top .placa-badge{background:rgba(255,255,255,.18);padding:5px 10px;border-radius:8px;font-weight:800;letter-spacing:1px;font-size:14px;font-family:ui-monospace,monospace}
-  .top .back{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:20px;width:34px;height:34px;border-radius:8px;cursor:pointer}
-  .top .recarga{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:17px;width:34px;height:34px;border-radius:8px;cursor:pointer}
+  .top .t h1{font-size:17px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.1px}
+  .top .t p{font-size:12px;opacity:.9;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .top .placa-badge{background:rgba(255,255,255,.18);padding:6px 9px;border-radius:9px;font-weight:800;letter-spacing:.5px;font-size:14px;font-family:ui-monospace,monospace;flex-shrink:0;white-space:nowrap}
+  .top .back,.top .recarga{background:rgba(255,255,255,.18);border:none;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;flex-shrink:0;display:grid;place-items:center;padding:0}
+  .top .back{font-size:24px;line-height:1}
+  .top .recarga{font-size:18px}
+  .top .back:active,.top .recarga:active{background:rgba(255,255,255,.3)}
 
   /*  min-height:0 es imprescindible: un hijo flex no se encoge por debajo de
       su contenido por defecto, así que sin esto la lista crecía a lo alto,
@@ -47,9 +56,11 @@
     padding:11px 2px;border:0;background:none;font-family:inherit;font-size:11.5px;
     font-weight:700;color:var(--gris);cursor:pointer;position:relative;
     border-bottom:3px solid transparent;transition:color .15s,border-color .15s}
-  .paso b{font-weight:800}
+  .paso b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .paso .cnt{flex-shrink:0}
   .paso .cnt{min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#EBEDF1;
     color:var(--gris);font-size:10.5px;font-weight:800;line-height:19px;text-align:center}
+  .paso .n{font-style:normal}
   .paso.on{color:var(--rojo);border-bottom-color:var(--rojo)}
   .paso.on .cnt{background:var(--rojo);color:#fff}
   /* un paso al que todavía no se puede llegar no se oculta: se apaga, para que
@@ -86,10 +97,12 @@
   .sin-reg-card p{font-size:13.5px;color:var(--gris);line-height:1.5;margin-bottom:14px}
   .btn-marcar{width:100%;border:0;border-radius:13px;padding:15px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;background:var(--ok);color:#fff}
   .btn-marcar.desm{background:#fff;color:var(--tinta);border:1.5px solid var(--linea)}
-  .instalar{background:rgba(255,255,255,.18);color:#fff;border:1.5px solid rgba(255,255,255,.55);
-    border-radius:20px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:800;
-    cursor:pointer;flex-shrink:0;white-space:nowrap}
-  .instalar:active{background:rgba(255,255,255,.3)}
+  .inst-banner{display:flex;align-items:center;gap:12px;margin:12px 16px 0;padding:11px 12px 11px 14px;background:var(--panel);
+    border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-left:5px solid var(--rojo);flex-shrink:0}
+  .inst-banner .ic{font-size:22px;flex-shrink:0}
+  .inst-banner .tx{flex:1;min-width:0;font-size:12px;color:var(--gris);line-height:1.3}
+  .inst-banner .tx b{display:block;font-size:14px;color:var(--tinta)}
+  .inst-banner button{background:var(--rojo);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0}
   /*  flex:1 + min-height:0, NO height:100%. Con height:100% la pantalla activa
       reclamaba toda la altura de .app, pero arriba están la cabecera y las
       pestañas y abajo la barra: la suma se pasaba, .app recortaba, la barra
@@ -159,18 +172,23 @@
   /* lista camiones */
   .lista-cam{padding:14px}
   .lista-cam h2{font-size:13px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:700}
-  .cam-card{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;display:flex;align-items:center;gap:14px;border-left:5px solid var(--linea)}
+  .cam-card{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;display:flex;flex-direction:column;gap:10px;border-left:5px solid var(--linea);min-width:0}
+  .cam-card .cc-top{display:flex;align-items:center;gap:12px;min-width:0}
+  .cam-card .big{font-size:22px;font-weight:800;line-height:1;flex-shrink:0;font-variant-numeric:tabular-nums}
+  .cam-card.completo .big{color:var(--ok)}
+  .cam-card .info .r{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.2;word-break:break-word}
+  .cam-card .info .z{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .cam-card .mini-barra{margin-top:0}
+  .cc-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--gris)}
+  .cc-meta b{color:var(--tinta);font-weight:800}
+  .cc-meta .sinreg{color:#B57A00;font-weight:700}
   .cam-card:active{transform:scale(.98)}
   .cam-card.completo{border-left-color:var(--ok)}
   .cam-card.cerrado{border-left-color:var(--tinta);opacity:.75}
-  .cam-card .placa{font-family:ui-monospace,monospace;font-weight:800;font-size:19px;background:var(--tinta);color:#fff;padding:8px 12px;border-radius:10px;letter-spacing:1px}
+  .cam-card .placa{font-family:ui-monospace,monospace;font-weight:800;font-size:18px;background:var(--tinta);color:#fff;padding:8px 11px;border-radius:10px;letter-spacing:1px;flex-shrink:0;white-space:nowrap}
   .cam-card .info{flex:1;min-width:0}
   .cam-card .info .r{font-size:15px;font-weight:700}
   .cam-card .info .z{font-size:12.5px;color:var(--gris)}
-  .cam-card .prog{text-align:right}
-  .cam-card .prog .big{font-size:20px;font-weight:800;line-height:1}
-  .cam-card .prog .lbl{font-size:11px;color:var(--gris)}
-  .cam-card.completo .prog .big{color:var(--ok)}
   .mini-barra{height:6px;background:#EDEFF2;border-radius:4px;overflow:hidden;margin-top:8px}
   .mini-barra span{display:block;height:100%;background:var(--amar);transition:width .3s}
   .cam-card.completo .mini-barra span{background:var(--ok)}
@@ -208,13 +226,14 @@
   .bul-barra span{display:block;height:100%;background:var(--ok)}
   .estado-bultos{font-size:12px;color:var(--gris);margin:0 2px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .reint{border:1.5px solid var(--linea);background:#fff;border-radius:8px;padding:4px 10px;font-family:inherit;font-size:12px;font-weight:800;color:var(--rojo);cursor:pointer}
-  .cam-card .prog .lbl.sinreg{color:#B57A00;font-weight:700}
   .aviso-bultos{background:#FFF6E0;border:1.5px solid #F2D48A;color:#6B4A00;border-radius:12px;padding:11px 13px;font-size:13px;line-height:1.4;margin-bottom:12px}
   .li-info .obs-tag{display:inline-block;background:#FFF7E6;color:#8A6D00;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-top:3px}
 
-  .cierre{flex-shrink:0;background:var(--panel);border-top:1px solid var(--linea);padding:12px 16px;box-shadow:0 -4px 16px rgba(0,0,0,.06)}
-  .cierre input{width:100%;border:2px solid var(--linea);border-radius:12px;padding:12px;font-size:15px;margin-bottom:10px;font-family:inherit}
-  .cierre .btn-cerrar{width:100%;padding:16px;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;color:#fff;background:var(--ok);box-shadow:0 4px 14px rgba(18,161,80,.3)}
+  .cierre{flex-shrink:0;background:var(--panel);border-top:1px solid var(--linea);padding:10px 14px;box-shadow:0 -4px 16px rgba(0,0,0,.06);
+    display:flex;gap:10px;align-items:stretch}
+  .cierre input{flex:1;min-width:0;border:2px solid var(--linea);border-radius:12px;padding:12px;font-size:15px;font-family:inherit}
+  .cierre input:focus{outline:none;border-color:var(--rojo)}
+  .cierre .btn-cerrar{flex:0 0 auto;min-width:44%;max-width:60%;padding:13px 12px;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;color:#fff;background:var(--ok);box-shadow:0 4px 14px rgba(18,161,80,.3);white-space:nowrap;font-family:inherit}
   .cierre .btn-cerrar.bloq{background:#C9CDD3;box-shadow:none}
   .cierre .btn-cerrar.hecho{background:var(--tinta)}
 
@@ -224,7 +243,10 @@
   .scanner video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .scan-overlay{position:absolute;inset:0;display:flex;flex-direction:column;z-index:5}
   .scan-head{padding:14px 16px;display:flex;align-items:center;gap:12px;background:linear-gradient(rgba(0,0,0,.6),transparent);color:#fff}
-  .scan-head .placa{font-family:ui-monospace,monospace;font-weight:800;background:rgba(255,255,255,.2);padding:5px 10px;border-radius:8px;letter-spacing:1px}
+  .scan-head{padding-top:calc(14px + env(safe-area-inset-top))}
+  .scan-head .placa{font-family:ui-monospace,monospace;font-weight:800;background:rgba(255,255,255,.2);padding:5px 10px;border-radius:8px;letter-spacing:1px;white-space:nowrap;flex-shrink:0}
+  #scanModo{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scan-head .cerrar-scan{flex-shrink:0}
   .scan-head .cerrar-scan{margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:20px;width:38px;height:38px;border-radius:10px;cursor:pointer}
   .mira-wrap{flex:1;display:flex;align-items:center;justify-content:center}
   .mira{width:82%;height:120px;border:3px solid #fff;border-radius:16px;box-shadow:0 0 0 2000px rgba(0,0,0,.45);position:relative}
@@ -259,6 +281,76 @@
   .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--tinta);color:#fff;padding:14px 20px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:300;max-width:90%;text-align:center;box-shadow:var(--sombra);pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.err{background:var(--rojo)}
+
+  /* ================= RESPONSIVE =================
+     Celular angosto, celular bajo (o con teclado abierto) y pantalla ancha
+     (tablet o PC). La app sigue siendo una sola columna en el celular; en
+     pantallas anchas las tarjetas pasan a dos columnas en vez de estirarse. */
+
+  /* celulares angostos (≤ 370 px, ej. Galaxy A de gama baja, iPhone SE) */
+  @media (max-width:370px){
+    .paso .n{display:none}
+    .paso{font-size:12px;gap:5px}
+    .top{gap:8px}
+    .top .t h1{font-size:16px}
+    .top .placa-badge{font-size:13px;padding:6px 7px}
+    .cam-card{padding:12px 12px}
+    .cam-card .cc-top{gap:10px}
+    .cam-card .placa{font-size:16px;padding:7px 9px}
+    .cam-card .big{font-size:19px}
+    .li-item{padding:12px;gap:11px}
+    .contador{padding:12px 14px}
+  }
+
+  /* pantallas bajas: se compacta lo fijo para que la lista tenga espacio */
+  @media (max-height:720px){
+    .top{min-height:54px;padding-top:calc(7px + env(safe-area-inset-top));padding-bottom:7px}
+    .paso{padding:9px 2px}
+    .contador{padding:10px 16px}
+    .contador .num{font-size:28px}
+    .contador .txt b{font-size:14px}
+    .scan-launch{margin:10px 12px;padding:13px;font-size:16px;border-radius:14px}
+    .cierre{padding:8px 12px}
+    .cierre input,.cierre .btn-cerrar{padding-top:10px;padding-bottom:10px}
+    .nb{padding:7px 4px 6px}
+    .mira{height:100px}
+    .scanner.modo-bultos .mira{height:130px}
+    .scan-result{padding:16px;bottom:14px}
+  }
+  /* celular acostado: no hay alto para una lista entre partes fijas, así que
+     la pantalla entera se desplaza (contador, botón, lista y cierre juntos);
+     solo la cabecera y la barra inferior quedan quietas. */
+  @media (max-height:480px){
+    .pantalla.activa{overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .pantalla .scroll{flex:none;min-height:auto;overflow:visible}
+    .pantalla>*{flex-shrink:0}
+    .scan-launch{padding:10px}
+    .contador .num{font-size:24px}
+    .pasos{display:none!important}
+  }
+
+  /* tablet / PC */
+  @media (min-width:720px){
+    body{padding:0}
+    .app{max-width:980px;box-shadow:0 0 40px rgba(0,0,0,.35)}
+    .sel-fecha,.lista-cam,.modo-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;align-content:start}
+    .sel-fecha>:not(.fecha-card),.lista-cam>:not(.cam-card),.modo-lista>:not(.li-item):not(.bul-row){grid-column:1/-1}
+    .sel-fecha,.lista-cam{padding:18px 20px}
+    .modo-lista{padding:14px 20px}
+    .scan-launch{margin:14px 20px;align-self:center;width:calc(100% - 40px);max-width:560px}
+    .fbuscar{padding:12px 20px}
+    .fbuscar input{max-width:560px}
+    .cierre{padding:12px 20px}
+    .cierre .btn-cerrar{min-width:280px}
+    .fac-info{padding:14px 4px 4px}
+    .navbar{justify-content:center}
+    .nb{max-width:220px}
+    .toast{bottom:100px}
+  }
+  @media (min-width:1100px){
+    .sel-fecha,.lista-cam{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .modo-lista{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
 </style>
 </head>
 <body>
@@ -268,16 +360,15 @@
     <div class="logo">P</div>
     <div class="t"><h1 id="topTitulo">Carga en Patio</h1><p id="topSub">Provefabrica · Huachipa</p></div>
     <span class="placa-badge" id="topPlaca" style="display:none"></span>
-    <button class="instalar" id="btnInstalar" style="display:none" onclick="instalarApp()">Instalar</button>
     <button class="recarga" id="btnRecarga" onclick="recargar()" title="Recargar">↻</button>
   </div>
 
   <!-- pasos: dónde estoy en el flujo. Mismo criterio que el planificador. -->
   <div class="pasos" id="pasos">
-    <button class="paso" id="paso1" onclick="irPaso(1)"><b>1 · Fecha</b><span class="cnt" id="cnt1">0</span></button>
-    <button class="paso" id="paso2" onclick="irPaso(2)"><b>2 · Camión</b><span class="cnt" id="cnt2">0</span></button>
-    <button class="paso" id="paso3" onclick="irPaso(3)"><b>3 · Carga</b><span class="cnt" id="cnt3">0</span></button>
-    <button class="paso" id="paso4" onclick="irPaso(4)"><b>4 · Bultos</b><span class="cnt" id="cnt4">0</span></button>
+    <button class="paso" id="paso1" onclick="irPaso(1)"><b><i class="n">1 · </i>Fecha</b><span class="cnt" id="cnt1">0</span></button>
+    <button class="paso" id="paso2" onclick="irPaso(2)"><b><i class="n">2 · </i>Camión</b><span class="cnt" id="cnt2">0</span></button>
+    <button class="paso" id="paso3" onclick="irPaso(3)"><b><i class="n">3 · </i>Carga</b><span class="cnt" id="cnt3">0</span></button>
+    <button class="paso" id="paso4" onclick="irPaso(4)"><b><i class="n">4 · </i>Bultos</b><span class="cnt" id="cnt4">0</span></button>
   </div>
 
   <!-- cargando -->
@@ -292,6 +383,9 @@
 
   <!-- selector fecha -->
   <div class="pantalla" id="p-fechas">
+    <div class="inst-banner" id="btnInstalar" style="display:none"><span class="ic">📲</span>
+      <div class="tx"><b>Instala la app</b>Ábrela desde tu pantalla de inicio, a pantalla completa</div>
+      <button onclick="instalarApp()">Instalar</button></div>
     <div class="fbuscar"><input id="inpFecha" type="search" inputmode="text" placeholder="Buscar fecha  ·  ej. 30/07" oninput="filtrarFechas(this.value)"></div>
     <div class="sel-fecha scroll" id="selFecha"></div>
   </div>
@@ -308,7 +402,7 @@
     <button class="scan-launch" onclick="abrirScanner()"><span class="ic">📷</span> Escanear rótulo</button>
     <div class="scroll"><div class="modo-lista" id="modoLista"></div></div>
     <div class="cierre">
-      <input id="respInput" placeholder="Tu nombre (responsable de carga)">
+      <input id="respInput" placeholder="Tu nombre" aria-label="Tu nombre (responsable de carga)">
       <button class="btn-cerrar bloq" id="btnCerrar" onclick="autorizarSalida()">Autorizar salida</button>
     </div>
   </div>
@@ -928,7 +1022,18 @@ function renderLista(){
     else avisoBultos=`<div class="estado-bultos">✓ Registro de bultos al día · ${haceTxt(BULTOS_T)}</div>`;
   }
   cont.innerHTML=avisoBultos+`<h2>${cams.length===todos.length?todos.length+' camiones · '+pend+' por autorizar':cams.length+' de '+todos.length+' camiones'}</h2>`+cams.map(c=>{const e=estado(c);const cls=c.cerrado?'cerrado':(e.completo?'completo':'');
-    return `<div class="cam-card ${cls}" data-placa="${esc(c.placa)}"><span class="placa">${esc(c.placa)}</span><div class="info"><div class="r">${c.ruta?('Ruta '+esc(c.ruta)):'—'}</div><div class="z">${esc(c.personal||'Sin asignar')}</div><div class="mini-barra"><span style="width:${e.pct}%"></span></div></div><div class="prog"><div class="big">${c.cerrado?'✓':e.pct+'%'}</div><div class="lbl">${c.cerrado?'autorizado':e.ok+'/'+e.t+' fact.'}</div>${!c.cerrado&&e.bTot?`<div class="lbl">${e.bOk}/${e.bTot} bultos</div>`:''}${!c.cerrado&&BULTOS_OK&&e.fSin?`<div class="lbl sinreg">${e.fSin} sin registro</div>`:''}</div></div>`;}).join('');
+    /*  Dos filas: arriba placa, ruta y avance; abajo la barra y los números.
+        Antes todo iba en una fila y con rutas largas ("SAN JUAN DE LURIGANCHO
+        NORTE") el nombre se partía palabra por palabra y pisaba los números. */
+    const meta=c.cerrado?`<span class="m">Salida autorizada${c.hora?' · '+esc(String(c.hora).split(' ').pop()||''):''}</span>`
+      :`<span class="m"><b>${e.ok}/${e.t}</b> facturas</span>`+(e.bTot?`<span class="m"><b>${e.bOk}/${e.bTot}</b> bultos</span>`:'')+
+       (BULTOS_OK&&e.fSin?`<span class="m sinreg">${e.fSin} sin registro</span>`:'');
+    return `<div class="cam-card ${cls}" data-placa="${esc(c.placa)}">
+      <div class="cc-top"><span class="placa">${esc(c.placa)}</span>
+        <div class="info"><div class="r">${c.ruta?esc(c.ruta):'Sin ruta'}</div><div class="z">${esc(c.personal||'Sin asignar')}</div></div>
+        <div class="big">${c.cerrado?'✓':e.pct+'%'}</div></div>
+      <div class="mini-barra"><span style="width:${c.cerrado?100:e.pct}%"></span></div>
+      <div class="cc-meta">${meta}</div></div>`;}).join('');
 }
 
 /* ===== verificación ===== */
@@ -937,8 +1042,8 @@ function abrirCamion(p){
   PLACA_ACT=p;const c=CAMIONES[p];
   document.getElementById('btnBack').style.display='';
   document.getElementById('topPlaca').style.display='';document.getElementById('topPlaca').textContent=p;
-  document.getElementById('topTitulo').textContent=c.ruta?('Ruta '+c.ruta):'Verificación';
-  document.getElementById('topSub').textContent=c.personal||'';
+  document.getElementById('topTitulo').textContent=c.ruta||'Verificación';
+  document.getElementById('topSub').textContent='Ruta'+(c.personal?' · '+c.personal:'');
   document.getElementById('respInput').value=c.responsable||'';
   PASO=3;
   mostrar('p-verif');renderVerif();pintarCascara();
@@ -955,11 +1060,14 @@ function renderVerif(){
   document.getElementById('contBig').textContent=e.completo?'Todo cargado':faltaFrase(e);
   document.getElementById('contSub').textContent=e.completo?'Listo para autorizar':
     (e.bTot?`${e.bOk} de ${e.bTot} bultos · ${e.ok} de ${e.t} facturas`:'Escanea cada rótulo al subirlo')+
-    (BULTOS_OK&&e.fSin?` · ${e.fSin} sin registro de bultos`:'');
+    (BULTOS_OK&&e.fSin?` · ${e.fSin} sin registro`:'');
   const btn=document.getElementById('btnCerrar');
-  if(c.cerrado){btn.className='btn-cerrar hecho';btn.textContent='✓ Salida autorizada';}
+  /*  El botón va en la misma fila que el nombre y dice poco: lo que falta ya
+      está escrito en grande en el contador de arriba. Así la lista gana
+      espacio en celulares pequeños. Tocarlo bloqueado explica el motivo. */
+  if(c.cerrado){btn.className='btn-cerrar hecho';btn.textContent='✓ Autorizada';}
   else if(e.completo){btn.className='btn-cerrar';btn.textContent='Autorizar salida';}
-  else{btn.className='btn-cerrar bloq';btn.textContent=`${faltaFrase(e)} — no autorizar`;}
+  else{btn.className='btn-cerrar bloq';btn.textContent='🔒 No autorizar';}
   /*  Ojo: toggleLista recibe la posición dentro de c.items. Si filtro la lista
       sin conservar el índice original, marcaría la factura equivocada — y en
       el patio eso significa autorizar un camión con carga incompleta. Por eso

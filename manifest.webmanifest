@@ -1,9 +1,10 @@
 {
+  "id": "/Bultos-Piloto/index.html",
   "name": "Carga en Patio · Piloto de Bultos — Provefabrica",
   "short_name": "Patio Piloto",
   "description": "Verificación de carga en patio: escanea el rótulo y cruza la factura contra la programación del camión.",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "./index.html",
+  "scope": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F4F5F7",
